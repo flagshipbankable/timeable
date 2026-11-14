@@ -6,8 +6,9 @@ accurately.
 
 **Live app:** https://flagshipbankable.github.io/timeable/ (once GitHub Pages is on)
 
-**Status:** early build. Phase 1 (the app shell) is done. Tasks, the timer, and
-the portal view arrive in the next phases. See `CLAUDE.md` for the full plan.
+**Status:** early build. The code book, tasks, and backups work. The timer
+and the portal view arrive in the next phases. See `CLAUDE.md` for the full
+plan.
 
 ## Install on iPhone
 
@@ -20,8 +21,9 @@ the portal view arrive in the next phases. See `CLAUDE.md` for the full plan.
 ## Your data
 
 timeable keeps everything on your device. Nothing is sent anywhere until
-optional sync arrives in a later phase. Once backups are available, export
-one regularly, and always before deleting or reinstalling the app.
+optional sync arrives in a later phase. Export a backup regularly from
+Settings (on iPhone, choose Save to Files), and always before deleting or
+reinstalling the app.
 
 ## Built with
 

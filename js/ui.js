@@ -36,6 +36,32 @@ export function isIOS() {
   return /iPhone|iPad|iPod/.test(ua) || (/Macintosh/.test(ua) && window.navigator.maxTouchPoints > 1);
 }
 
+// A short message that appears above the tab bar and fades away.
+export function toast(message) {
+  let el = document.getElementById('toast');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'toast';
+    el.className = 'toast';
+    el.setAttribute('role', 'status');
+    document.body.append(el);
+  }
+  el.textContent = message;
+  el.classList.add('show');
+  clearTimeout(toast.timer);
+  toast.timer = setTimeout(() => el.classList.remove('show'), 3200);
+}
+
+// "Nov 14, 2026" from an ISO time or a YYYY-MM-DD date, in local time.
+export function shortDate(value) {
+  if (!value) return '';
+  const date = /^\d{4}-\d{2}-\d{2}$/.test(value) ? new Date(`${value}T12:00:00`) : new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+export const plural = (n, word, many = `${word}s`) => `${n} ${n === 1 ? word : many}`;
+
 // Small settings in localStorage. It can be missing or throw (private
 // browsing, storage limits), so failures fall back quietly.
 export const prefs = {

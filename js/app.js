@@ -8,6 +8,8 @@ import * as day from './views/day.js';
 import * as week from './views/week.js';
 import * as tasks from './views/tasks.js';
 import * as settings from './views/settings.js';
+import * as codes from './views/codes.js';
+import { onChange } from './store.js';
 
 const VIEWS = [
   { id: 'desk', label: 'Desk', icon: 'desk', view: desk },
@@ -15,6 +17,11 @@ const VIEWS = [
   { id: 'week', label: 'Week', icon: 'week', view: week },
   { id: 'tasks', label: 'Tasks', icon: 'tasks', view: tasks },
   { id: 'settings', label: 'Settings', icon: 'settings', view: settings },
+];
+
+// Screens that aren't tabs. "nav" says which tab stays highlighted.
+const SUB_VIEWS = [
+  { id: 'codes', label: 'Code book', nav: 'settings', view: codes },
 ];
 
 const $ = (selector) => document.querySelector(selector);
@@ -28,15 +35,24 @@ function renderNav() {
 
 function currentView() {
   const id = window.location.hash.slice(1);
-  return VIEWS.find((v) => v.id === id) || VIEWS[0];
+  return VIEWS.find((v) => v.id === id) || SUB_VIEWS.find((v) => v.id === id) || VIEWS[0];
 }
 
 function show({ moveFocus }) {
   const entry = currentView();
   const main = $('#view');
-  entry.view.render(main);
+  // Each render gets a fresh container. If Josh switches screens before a
+  // slow screen finishes loading, it fills a container that's no longer
+  // shown instead of overwriting the new screen.
+  const container = document.createElement('div');
+  main.replaceChildren(container);
+  Promise.resolve(entry.view.render(container)).catch((error) => {
+    console.error(error);
+    container.innerHTML = '<section class="card"><h2>Something went wrong</h2><p>This screen didn’t load. Try again, and if it keeps happening, export a backup and report it.</p></section>';
+  });
+  const navId = entry.nav || entry.id;
   document.querySelectorAll('[data-nav]').forEach((a) => {
-    if (a.dataset.nav === entry.id) a.setAttribute('aria-current', 'page');
+    if (a.dataset.nav === navId) a.setAttribute('aria-current', 'page');
     else a.removeAttribute('aria-current');
   });
   document.title = entry.id === 'desk' ? 'timeable' : `${entry.label} · timeable`;
@@ -95,6 +111,8 @@ updateDate();
 show({ moveFocus: false });
 maybeShowInstallHint();
 window.addEventListener('hashchange', () => show({ moveFocus: true }));
+// Saved data changed: redraw the current screen so it shows the new state.
+onChange(() => show({ moveFocus: false }));
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'visible') updateDate();
 });

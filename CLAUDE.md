@@ -4,8 +4,9 @@ Spec and working rules for Claude in this repo. **Public file:** no names,
 credentials, employer details, job codes, client names, or real data. Use
 placeholders.
 
-**Status:** Approved Nov 14, 2026. v0.1.0 (Phase 1) is live and checked on
-Josh's iPhone. Phase 2 starts when Josh says go.
+**Status:** Approved Nov 14, 2026. v0.1.0 (Phase 1) is live. Phase 2
+(v0.2.0) is built and tested in headless Chrome; waiting for Josh's go-ahead
+to publish.
 
 ## 1. Overview
 
@@ -162,9 +163,14 @@ timeable/
 ├── css/app.css             all styles (phone first; desktop from 900px)
 ├── js/app.js               start-up, navigation, banners
 ├── js/sw-client.js         service worker registration and update flow
-├── js/ui.js                shared helpers: escaping, dates, small settings
+├── js/store.js             the only file that reads and writes saved data
+├── js/codebook.js          code book checks, change preview, applying changes
+├── js/backup.js            backup checks, export (Share sheet or download)
+├── js/sheet.js             pop-up panels for forms and confirmations
+├── js/ui.js                shared helpers: escaping, dates, toasts, settings
 ├── js/icons.js             inline SVG icons
-├── js/views/               one file per screen: desk, day, week, tasks, settings
+├── js/views/               one file per screen: desk, day, week, tasks,
+│                           settings, codes (code book editor, #codes)
 ├── icons/                  app icons: 192, 512, maskable 512, Apple 180
 ├── .nojekyll               serve files as-is on GitHub Pages
 ├── README.md
@@ -205,11 +211,12 @@ offline.
 - [x] Josh's iPhone check after publishing (Nov 14, 2026)
 
 ### Phase 2 — Code book, tasks, and backup
-- [ ] `store.js` (IndexedDB, schema version 1)
-- [ ] Code book import with change preview; edit in Settings
-- [ ] Task create, edit, delete, and star; "needs a new code" flag
-- [ ] Backup export and import with validation
-- [ ] Test: import a sample code book, build tasks, export, clear, import
+- [x] `store.js` (IndexedDB, schema version 1, all five stores created now)
+- [x] Code book import with change preview; edit in Settings
+- [x] Task create, edit, delete, and star; "needs a new code" flag
+- [x] Backup export and import with validation
+- [x] Test: import a sample code book, build tasks, export, clear, import
+- [ ] Josh's iPhone check after publishing (Share sheet export, import)
 
 ### Phase 3 — Timer and entries
 - [ ] Clock in, start at, switch, finish; running banner
@@ -234,3 +241,6 @@ offline.
 ## 9. Release notes
 - 0.1.0 — Nov 14, 2026 — Foundation: app shell with five screens, Home
   Screen install, offline use, and the update prompt.
+- 0.2.0 — Nov 14, 2026 — Code book import with change preview and editor,
+  tasks with favorites and "needs a new code" flags, backup export and
+  import, and storage protection.
