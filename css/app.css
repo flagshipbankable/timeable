@@ -1,0 +1,250 @@
+/* timeable — app styles. Phone first; the desktop layout starts at 900px. */
+
+:root {
+  color-scheme: light;
+  --teal-900: #073d47;
+  --teal-700: #0b5866;
+  --teal-500: #12827a;
+  --mint-300: #7fd6c8;
+  --mint-100: #dff3ef;
+  --bg: #eef6f6;
+  --surface: #ffffff;
+  --text: #1f3236;
+  --muted: #5b6f72;
+  --border: #d6e6e7;
+  --warn-bg: #fff4e0;
+  --warn-text: #7a4a00;
+  --radius: 14px;
+  --shadow: 0 1px 2px rgba(7, 61, 71, 0.06), 0 6px 20px rgba(7, 61, 71, 0.06);
+  --tabbar-height: 64px;
+  --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 16px;
+  line-height: 1.45;
+  -webkit-text-size-adjust: 100%;
+}
+
+a { color: var(--teal-700); }
+.banner-update a { color: #fff; }
+
+.app {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Top bar. Safe-area padding keeps it clear of the notch and Dynamic Island. */
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: calc(env(safe-area-inset-top) + 10px) calc(env(safe-area-inset-right) + 16px) 10px calc(env(safe-area-inset-left) + 16px);
+  background: rgba(238, 246, 246, 0.92);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--teal-900);
+  text-decoration: none;
+  min-height: 44px;
+}
+.brand-mark { border-radius: 8px; }
+.brand-word { font-size: 1.25rem; font-weight: 700; letter-spacing: -0.02em; }
+.brand-dot { color: var(--teal-500); }
+
+.topbar-date {
+  margin-left: auto;
+  color: var(--muted);
+  font-size: 0.875rem;
+  white-space: nowrap;
+}
+
+.desktop-nav { display: none; }
+
+/* Banners: update prompt and install hint. */
+.banners {
+  padding: 0 calc(env(safe-area-inset-right) + 16px) 0 calc(env(safe-area-inset-left) + 16px);
+}
+.banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 12px;
+  padding: 12px 14px;
+  border-radius: var(--radius);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+}
+.banner p { margin: 0; flex: 1; }
+.banner-update { background: var(--teal-700); color: #fff; border-color: var(--teal-700); }
+.banner-update .button { background: #fff; color: var(--teal-700); }
+
+/* Main view. Bottom padding leaves room for the tab bar and home indicator. */
+.view {
+  flex: 1;
+  width: 100%;
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 20px calc(env(safe-area-inset-right) + 16px) calc(var(--tabbar-height) + env(safe-area-inset-bottom) + 24px) calc(env(safe-area-inset-left) + 16px);
+  outline: none;
+}
+
+.view-heading { margin: 4px 0 16px; }
+.view-heading h1 {
+  margin: 0;
+  font-size: 1.75rem;
+  letter-spacing: -0.02em;
+  color: var(--teal-900);
+}
+.view-heading p { margin: 4px 0 0; color: var(--muted); }
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 18px;
+  margin-bottom: 14px;
+}
+.card h2 { margin: 0 0 8px; font-size: 1.05rem; color: var(--teal-900); }
+.card p { margin: 0 0 8px; }
+.card p:last-child { margin-bottom: 0; }
+
+.empty {
+  text-align: center;
+  padding: 32px 20px;
+}
+.empty-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: var(--mint-100);
+  color: var(--teal-700);
+  margin-bottom: 10px;
+}
+.empty h2 { margin: 0 0 6px; font-size: 1.1rem; }
+.empty p { color: var(--muted); max-width: 32rem; margin: 0 auto; }
+
+.muted { color: var(--muted); }
+.small { font-size: 0.875rem; }
+
+.info-list { margin: 0; }
+.info-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 0;
+  border-top: 1px solid var(--border);
+}
+.info-row:first-child { border-top: 0; }
+.info-row dt { color: var(--muted); }
+.info-row dd { margin: 0; font-weight: 600; text-align: right; }
+
+.steps { margin: 8px 0 0; padding-left: 1.3rem; }
+.steps li { margin-bottom: 6px; }
+
+/* Buttons: 44px minimum touch target. */
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--teal-700);
+  color: #fff;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+.button:disabled { opacity: 0.6; cursor: default; }
+.button-soft { background: var(--mint-100); color: var(--teal-700); }
+.icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+
+:focus-visible { outline: 3px solid var(--mint-300); outline-offset: 2px; }
+
+/* Bottom tab bar (phone). */
+.tabbar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 10;
+  display: flex;
+  justify-content: space-around;
+  padding: 6px calc(env(safe-area-inset-right) + 4px) calc(env(safe-area-inset-bottom) + 6px) calc(env(safe-area-inset-left) + 4px);
+  background: rgba(255, 255, 255, 0.95);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  border-top: 1px solid var(--border);
+}
+.tab {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-height: 52px;
+  color: var(--muted);
+  text-decoration: none;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border-radius: 10px;
+}
+.tab[aria-current="page"] { color: var(--teal-700); background: var(--mint-100); }
+
+.noscript { padding: 24px; text-align: center; }
+
+/* Desktop and laptop. */
+@media (min-width: 900px) {
+  .tabbar { display: none; }
+  .desktop-nav { display: flex; gap: 4px; margin-left: 24px; }
+  .desktop-nav a {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 40px;
+    padding: 0 12px;
+    border-radius: 10px;
+    color: var(--muted);
+    text-decoration: none;
+    font-weight: 600;
+  }
+  .desktop-nav a[aria-current="page"] { color: var(--teal-700); background: var(--mint-100); }
+  .view { padding-top: 28px; padding-bottom: 40px; }
+  .banners { max-width: 960px; margin: 0 auto; width: 100%; }
+}
