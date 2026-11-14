@@ -4,10 +4,9 @@ Spec and working rules for Claude in this repo. **Public file:** no names,
 credentials, employer details, job codes, client names, or real data. Use
 placeholders.
 
-**Status:** Approved Nov 14, 2026. v0.2.0 (Phases 1–2) is live and checked
-on Josh's iPhone, with his real code book loaded. v0.3.1 (Phase 3 plus Josh's
-review changes) is built and tested on the `phase-3` branch, waiting for
-Josh's go to publish. (0.3.0 was never published.)
+**Status:** Approved Nov 14, 2026. v0.3.1 (Phases 1–3, including Josh's
+review changes) published Nov 14, 2026, waiting for Josh's iPhone check.
+Phase 4 starts when Josh says go. (0.3.0 was never published.)
 
 ## 1. Overview
 
