@@ -5,9 +5,8 @@ import { icons } from '../icons.js';
 import { emptyState, esc, heading, toast } from '../ui.js';
 import { openSheet } from '../sheet.js';
 import * as store from '../store.js';
-import { activeCodes, codeText, findCode, groupCodes, taskNeedsCode } from '../codebook.js';
-
-const CUSTOM = '__custom__';
+import { codeText, findCode, taskNeedsCode } from '../codebook.js';
+import { clientFieldsHtml, codeOptions, readClient, wireClientFields } from '../fields.js';
 
 // Favorites first, then alphabetical (ignoring capitals).
 export function sortTasks(tasks) {
@@ -58,27 +57,9 @@ function taskRow(t, codebook) {
   </li>`;
 }
 
-function codeOptions(codebook, selected) {
-  const current = findCode(codebook, selected);
-  const retiredOption = selected && (!current || current.active === false)
-    ? `<option value="${esc(selected)}" selected>${esc(current ? codeText(current) : selected)} (retired)</option>` : '';
-  const groups = groupCodes(activeCodes(codebook)).map((g) => `<optgroup label="${esc(g.title)}">${g.codes.map((c) =>
-    `<option value="${esc(c.code)}" ${c.code === selected ? 'selected' : ''}>${esc(codeText(c))}${c.billable ? '' : ' (non-billable)'}</option>`).join('')}</optgroup>`).join('');
-  return `<option value="" ${selected ? '' : 'selected'} disabled>Choose a service code</option>${retiredOption}${groups}`;
-}
-
-function clientOptions(codebook, client) {
-  const standard = codebook.clients;
-  const isCustom = Boolean(client) && !standard.includes(client);
-  return `<option value="" ${client ? '' : 'selected'}>Choose each time</option>
-    ${standard.map((c) => `<option value="${esc(c)}" ${c === client ? 'selected' : ''}>${esc(c)}</option>`).join('')}
-    <option value="${CUSTOM}" ${isCustom ? 'selected' : ''}>A specific client…</option>`;
-}
-
-function openTaskForm(task, codebook, allTasks) {
+export function openTaskForm(task, codebook, allTasks) {
   const isNew = !task;
   const t = task || { name: '', code: '', client: '', summary: '', favorite: false };
-  const isCustomClient = Boolean(t.client) && !codebook.clients.includes(t.client);
   const needs = !isNew && taskNeedsCode(t, codebook);
 
   openSheet({
@@ -88,9 +69,7 @@ function openTaskForm(task, codebook, allTasks) {
         <label>Name<span class="hint">Same as the portal template</span>
           <input name="name" type="text" maxlength="80" required value="${esc(t.name)}" ${isNew ? 'autofocus' : ''} autocomplete="off"></label>
         <label>Service code<select name="code" required>${codeOptions(codebook, t.code)}</select></label>
-        <label>Default client<select name="client">${clientOptions(codebook, t.client)}</select></label>
-        <label class="custom-client" ${isCustomClient ? '' : 'hidden'}>Client name
-          <input name="customClient" type="text" maxlength="120" value="${esc(isCustomClient ? t.client : '')}" autocomplete="off"></label>
+        ${clientFieldsHtml(codebook, t.client, { label: 'Default client', blankLabel: 'Choose each time' })}
         <label>Default activity summary<span class="hint">Optional. Each day's notes get added to it.</span>
           <textarea name="summary" rows="3" maxlength="1000">${esc(t.summary)}</textarea></label>
         <label class="check"><input name="favorite" type="checkbox" ${t.favorite ? 'checked' : ''}> Favorite (shows first)</label>
@@ -109,18 +88,14 @@ function openTaskForm(task, codebook, allTasks) {
     onMount: (sheet, close) => {
       const form = sheet.querySelector('#task-form');
       const error = sheet.querySelector('.form-error');
-      const customLabel = sheet.querySelector('.custom-client');
       sheet.querySelector('[data-close]').addEventListener('click', close);
-      form.client.addEventListener('change', () => {
-        customLabel.hidden = form.client.value !== CUSTOM;
-        if (!customLabel.hidden) form.customClient.focus();
-      });
+      wireClientFields(form);
 
       form.addEventListener('submit', async (e) => {
         e.preventDefault();
         const name = form.name.value.trim();
         const code = form.code.value;
-        const client = form.client.value === CUSTOM ? form.customClient.value.trim() : form.client.value;
+        const client = readClient(form);
         const fail = (message, field) => { error.textContent = message; error.hidden = false; if (field) field.focus(); };
         if (!name) return fail('Give the task a name.', form.name);
         const duplicate = allTasks.some((x) => x.id !== t.id && x.name.toLowerCase() === name.toLowerCase());
@@ -128,7 +103,7 @@ function openTaskForm(task, codebook, allTasks) {
         if (!code) return fail('Choose a service code.', form.code);
         const chosen = findCode(codebook, code);
         if (!chosen || chosen.active === false) return fail('That code is retired. Choose a current one.', form.code);
-        if (form.client.value === CUSTOM && !client) return fail('Type the client’s name, or pick another option.', form.customClient);
+        if (client === null) return fail('Type the client’s name, or pick another option.', form.customClient);
 
         await store.saveTask({ ...t, name, code, client, summary: form.summary.value.trim(), favorite: form.favorite.checked });
         store.requestPersistence();

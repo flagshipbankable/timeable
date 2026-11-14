@@ -2,6 +2,8 @@
 
 import { icons } from './icons.js';
 import { isIOS, isStandalone, prefs, todayLabel } from './ui.js';
+import { localDate } from './time.js';
+import { refreshRunning, startRunningBar } from './running.js';
 import { applyUpdate, startServiceWorker } from './sw-client.js';
 import * as desk from './views/desk.js';
 import * as day from './views/day.js';
@@ -62,8 +64,19 @@ function show({ moveFocus }) {
   }
 }
 
+let shownDate = localDate();
+
 function updateDate() {
   $('#today-label').textContent = todayLabel();
+}
+
+// After midnight, "today" moves on: refresh the date and the screen.
+function checkDate() {
+  const date = localDate();
+  if (date === shownDate) return;
+  shownDate = date;
+  updateDate();
+  show({ moveFocus: false });
 }
 
 function addBanner(id, html) {
@@ -108,12 +121,17 @@ function maybeShowInstallHint() {
 
 renderNav();
 updateDate();
-show({ moveFocus: false });
+// The running session loads first, so live times on the first screen use it.
+startRunningBar().catch((error) => console.error(error)).finally(() => show({ moveFocus: false }));
 maybeShowInstallHint();
 window.addEventListener('hashchange', () => show({ moveFocus: true }));
-// Saved data changed: redraw the current screen so it shows the new state.
-onChange(() => show({ moveFocus: false }));
-document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState === 'visible') updateDate();
+// Saved data changed: refresh the running bar and redraw the current
+// screen so both show the new state.
+onChange(() => {
+  refreshRunning().catch((error) => console.error(error)).finally(() => show({ moveFocus: false }));
 });
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') checkDate();
+});
+setInterval(checkDate, 60 * 1000);
 startServiceWorker({ onUpdateReady: showUpdateBanner });

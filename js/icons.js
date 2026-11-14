@@ -22,5 +22,8 @@ export const icons = {
   warn: (s) => svg('<path d="M12 4l9 16H3z"/><path d="M12 10v4M12 17.5v.5"/>', s),
   back: (s) => svg('<path d="M15 5l-7 7 7 7"/>', s),
   chevron: (s) => svg('<path d="M9 5l7 7-7 7"/>', s),
+  more: (s) => `<svg width="${s || 22}" height="${s || 22}" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5.5" cy="12" r="1.9"/><circle cx="12" cy="12" r="1.9"/><circle cx="18.5" cy="12" r="1.9"/></svg>`,
+  play: (s) => svg('<path d="M8 5.5v13l10.5-6.5z"/>', s),
+  clockPlus: (s) => svg('<circle cx="11" cy="12" r="7.5"/><path d="M11 8v4l2.5 1.5"/><path d="M19 3v4M17 5h4"/>', s),
   shield: (s) => svg('<path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6z"/><path d="M9 12l2 2 4-4"/>', s),
 };

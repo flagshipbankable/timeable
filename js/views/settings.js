@@ -53,9 +53,9 @@ export async function render(el) {
       <dl class="info-list">
         <div class="info-row"><dt>Tasks</dt><dd>${counts.tasks}</dd></div>
         <div class="info-row"><dt>Time entries</dt><dd>${counts.entries}</dd></div>
-        <div class="info-row"><dt>Protected from clean-up</dt><dd>${persisted === true ? 'Yes' : persisted === false ? 'Not yet' : 'Unknown'}</dd></div>
+        <div class="info-row"><dt>Storage protection</dt><dd>${persisted === true ? 'On' : persisted === false ? 'Not yet' : 'Unknown'}</dd></div>
       </dl>
-      <p class="muted small">Everything stays on this device. timeable asks iPhone to protect its data once you save something; iPhone decides, and it's more likely for Home Screen apps. Backups are the safety net either way.</p>
+      <p class="muted small">Storage protection is a status, not a setting: it shows whether iPhone has agreed to keep timeable's data when space runs low. timeable asks automatically once you save something; iPhone decides, and it's more likely for Home Screen apps. Everything stays on this device, and backups are the safety net either way.</p>
     </section>
     <section class="card">
       <h2>App</h2>

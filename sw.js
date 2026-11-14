@@ -1,7 +1,7 @@
 // timeable service worker: keeps the app's files for offline use and
 // announces new versions. Bump VERSION on every release. Changing this line
 // changes this file, which is how every browser notices an update.
-const VERSION = '0.2.0';
+const VERSION = '0.3.0';
 const CACHE = `timeable-${VERSION}`;
 
 // Every file the app needs to open offline. Paths are relative because the
@@ -14,10 +14,15 @@ const ASSETS = [
   './js/app.js',
   './js/backup.js',
   './js/codebook.js',
+  './js/entries.js',
+  './js/entry-forms.js',
+  './js/fields.js',
   './js/icons.js',
+  './js/running.js',
   './js/sheet.js',
   './js/store.js',
   './js/sw-client.js',
+  './js/time.js',
   './js/ui.js',
   './js/views/desk.js',
   './js/views/day.js',

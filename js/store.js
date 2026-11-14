@@ -143,6 +143,112 @@ export async function deleteTask(id) {
   changed('tasks');
 }
 
+// ---- Time entries
+
+export async function listEntries() {
+  const all = await run(['entries'], 'readonly', (tx) => req(tx.objectStore('entries').getAll()));
+  return all.filter((e) => !e.deleted);
+}
+
+export async function listEntriesForDate(workDate) {
+  const all = await run(['entries'], 'readonly', (tx) =>
+    req(tx.objectStore('entries').index('workDate').getAll(IDBKeyRange.only(workDate))));
+  return all.filter((e) => !e.deleted);
+}
+
+export async function getEntry(id) {
+  return run(['entries'], 'readonly', (tx) => req(tx.objectStore('entries').get(id))).then((r) => r || null);
+}
+
+export async function getRunningEntry() {
+  return (await listEntries()).find((e) => !e.end) || null;
+}
+
+// Clocking in ends whatever is running at the new start time and saves the
+// new entry, in one transaction, so there's never a moment with two timers
+// or none. Returns what's needed to undo it.
+export async function clockIn(entry) {
+  const startMs = Date.parse(entry.start);
+  const result = await run(['entries'], 'readwrite', async (tx) => {
+    const entries = tx.objectStore('entries');
+    const all = await req(entries.getAll());
+    const running = all.filter((e) => !e.deleted && !e.end);
+    if (running.some((r) => Date.parse(r.start) > startMs)) {
+      throw new Error('That start time is before the current timer started. Finish or edit the current session first.');
+    }
+    const stamp = now();
+    for (const r of running) entries.put({ ...r, end: entry.start, updatedAt: stamp });
+    const record = { ...entry, id: newId(), deleted: false, createdAt: stamp, updatedAt: stamp };
+    entries.put(record);
+    return { created: record, endedIds: running.map((r) => r.id) };
+  });
+  changed('entries');
+  return result;
+}
+
+// Reverses a clock-in: removes the new entry and restarts the one it ended.
+export async function undoClockIn({ created, endedIds }) {
+  await run(['entries'], 'readwrite', async (tx) => {
+    const entries = tx.objectStore('entries');
+    const stamp = now();
+    const current = await req(entries.get(created.id));
+    if (current) entries.put({ ...current, deleted: true, updatedAt: stamp });
+    for (const id of endedIds) {
+      const e = await req(entries.get(id));
+      if (e && e.end === created.start) entries.put({ ...e, end: null, updatedAt: stamp });
+    }
+  });
+  changed('entries');
+}
+
+export async function finishRunning(endIso) {
+  const running = await getRunningEntry();
+  if (!running) return null;
+  if (Date.parse(endIso) < Date.parse(running.start)) throw new Error('The end has to be after the start.');
+  return saveEntry({ ...running, end: endIso });
+}
+
+// Saves a new or edited entry (past time, custom entries, edits).
+export async function saveEntry(entry) {
+  const stamp = now();
+  const record = { ...entry, id: entry.id || newId(), deleted: false, createdAt: entry.createdAt || stamp, updatedAt: stamp };
+  await run(['entries'], 'readwrite', (tx) => req(tx.objectStore('entries').put(record)));
+  changed('entries');
+  return record;
+}
+
+// Undo for Finish: restarts the entry, as long as nothing else has started.
+export async function reopenEntry(id, expectedEnd) {
+  await run(['entries'], 'readwrite', async (tx) => {
+    const entries = tx.objectStore('entries');
+    const all = await req(entries.getAll());
+    if (all.some((e) => !e.deleted && !e.end && e.id !== id)) throw new Error('Another timer is running now, so this one can\u2019t restart.');
+    const e = all.find((x) => x.id === id);
+    if (e && !e.deleted && e.end === expectedEnd) entries.put({ ...e, end: null, updatedAt: now() });
+  });
+  changed('entries');
+}
+
+// Undo for Delete.
+export async function restoreEntry(id) {
+  await run(['entries'], 'readwrite', async (tx) => {
+    const entries = tx.objectStore('entries');
+    const all = await req(entries.getAll());
+    const e = all.find((x) => x.id === id);
+    if (!e) return;
+    if (!e.end && all.some((x) => !x.deleted && !x.end && x.id !== id)) throw new Error('Another timer is running now. Finish it first, then undo.');
+    entries.put({ ...e, deleted: false, updatedAt: now() });
+  });
+  changed('entries');
+}
+
+export async function deleteEntry(id) {
+  const entry = await getEntry(id);
+  if (!entry) return;
+  await run(['entries'], 'readwrite', (tx) => req(tx.objectStore('entries').put({ ...entry, deleted: true, updatedAt: now() })));
+  changed('entries');
+}
+
 // ---- Backup
 
 export async function exportAll() {

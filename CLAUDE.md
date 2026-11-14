@@ -5,8 +5,8 @@ credentials, employer details, job codes, client names, or real data. Use
 placeholders.
 
 **Status:** Approved Nov 14, 2026. v0.2.0 (Phases 1–2) is live and checked
-on Josh's iPhone, with his real code book loaded. Phase 3 starts when Josh
-says go.
+on Josh's iPhone, with his real code book loaded. v0.3.0 (Phase 3) is built
+and tested on the `phase-3` branch, waiting for Josh's go to publish.
 
 ## 1. Overview
 
@@ -68,13 +68,26 @@ hours**, **Preparation hours**, **Miles**, **Destination** (optional),
 - Editing a task never changes past entries.
 
 **Timer and entries**
-- Tap a task to clock in. "Start at…" backdates the start.
+- The Desk lists tasks as full-width rows (favorites first, then A–Z), each
+  showing its code and client, so every task stays in the same spot (Josh,
+  Nov 14).
+- Tap a task to clock in. An Undo shows for a few seconds after clocking in,
+  switching, finishing, or deleting. A quick double tap starts only one
+  session.
+- Each row's ⋯ button has "Start at…" (backdates the start), a client for
+  this session, notes, "Add past time for this task", and "Edit task".
 - Tapping a new task ends the running one at the new start time.
+- A task whose code is retired can't be clocked into until it gets a new code.
 - An "On the clock" banner on every screen, with a live timer and Edit and
-  Finish buttons.
-- Custom (one-off) entries that aren't tied to a task.
+  Finish buttons. It sits above the tab bar on phones.
+- Custom (one-off) entries that aren't tied to a task. Their service code is
+  optional so time can be captured fast and sorted out later.
 - Add past time with a work date, start and end, and overnight handling.
-- Edit any field, or delete.
+- Edit any field, or delete. Editing other fields never shifts a session's
+  exact start and end.
+- Saving time that overlaps another session shows a warning first, since
+  overlapping time counts twice.
+- A session that runs past midnight counts on the day it started.
 - Every entry keeps a copy of its task name, service code, code label, and
   billable status from the moment it was logged.
 - Optional per-entry fields: client (if different from the task's), notes for
@@ -167,8 +180,13 @@ timeable/
 ├── js/codebook.js          code book checks, change preview, applying changes
 ├── js/backup.js            backup checks, export (Share sheet or download)
 ├── js/sheet.js             pop-up panels for forms and confirmations
-├── js/ui.js                shared helpers: escaping, dates, toasts, settings
+├── js/ui.js                shared helpers: escaping, toasts, settings
 ├── js/icons.js             inline SVG icons
+├── js/time.js              local dates, weeks, durations, time formats
+├── js/entries.js           entry copies from tasks, totals, overlap checks
+├── js/fields.js            shared form fields: code, client, extras
+├── js/entry-forms.js       start options, one-off timer, past time, edit
+├── js/running.js           the "On the clock" bar and live timer
 ├── js/views/               one file per screen: desk, day, week, tasks,
 │                           settings, codes (code book editor, #codes)
 ├── icons/                  app icons: 192, 512, maskable 512, Apple 180
@@ -219,11 +237,14 @@ offline.
 - [x] Josh's iPhone check after publishing (Nov 14, 2026: update, code book load, tasks, Share sheet export, storage protection granted)
 
 ### Phase 3 — Timer and entries
-- [ ] Clock in, start at, switch, finish; running banner
-- [ ] Custom entries; add past time; edit and delete
-- [ ] Today and this-week totals on the Desk
-- [ ] Settings: reword "Protected from clean-up" so it reads as a status, not a setting (Josh, Nov 14)
-- [ ] Test: timer survives reload and app close; switching; overnight entries
+- [x] Clock in, start at, switch, finish; running banner
+- [x] Custom entries; add past time; edit and delete
+- [x] Today and this-week totals on the Desk
+- [x] Settings: reword "Protected from clean-up" so it reads as a status, not a setting (Josh, Nov 14)
+- [x] Desk redesign: full-width rows, one-tap clock-in with Undo, ⋯ options (Josh, Nov 14)
+- [x] Day tab: the day's sessions with date navigation (portal lines come in Phase 4)
+- [x] Test: timer survives reload and app close; switching; overnight entries
+- [ ] Josh's iPhone check after publishing
 
 ### Phase 4 — Ready for the portal
 - [ ] Day view with portal lines, rounding, copy buttons, entered checkmarks
@@ -245,3 +266,8 @@ offline.
 - 0.2.0 — Nov 14, 2026 — Code book import with change preview and editor,
   tasks with favorites and "needs a new code" flags, backup export and
   import, and storage protection.
+- 0.3.0 — Nov 14, 2026 — Timer: one-tap clock-in with Undo, switching,
+  Start at, the "On the clock" bar with Edit and Finish, one-off timers, past
+  time with overnight handling, editing and deleting sessions, overlap
+  warnings, Today and This week totals, the Day tab's session list, and the
+  "Storage protection: On" wording.

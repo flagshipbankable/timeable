@@ -36,8 +36,9 @@ export function isIOS() {
   return /iPhone|iPad|iPod/.test(ua) || (/Macintosh/.test(ua) && window.navigator.maxTouchPoints > 1);
 }
 
-// A short message that appears above the tab bar and fades away.
-export function toast(message) {
+// A short message above the tab bar. With an action (like Undo), it stays
+// longer and shows a button; tapping it runs the action and closes the toast.
+export function toast(message, { action, onAction, duration } = {}) {
   let el = document.getElementById('toast');
   if (!el) {
     el = document.createElement('div');
@@ -46,10 +47,22 @@ export function toast(message) {
     el.setAttribute('role', 'status');
     document.body.append(el);
   }
-  el.textContent = message;
+  el.innerHTML = `<span class="toast-text">${esc(message)}</span>${action ? `<button type="button" class="toast-action">${esc(action)}</button>` : ''}`;
+  el.classList.toggle('has-action', Boolean(action));
   el.classList.add('show');
   clearTimeout(toast.timer);
-  toast.timer = setTimeout(() => el.classList.remove('show'), 3200);
+  const hide = () => { el.classList.remove('show'); clearTimeout(toast.timer); };
+  if (action) {
+    el.querySelector('.toast-action').addEventListener('click', () => { hide(); onAction(); }, { once: true });
+  }
+  toast.timer = setTimeout(hide, duration || (action ? 7000 : 3200));
+}
+
+// Closes the toast now (for example when a form opens over it).
+export function hideToast() {
+  const el = document.getElementById('toast');
+  if (el) el.classList.remove('show');
+  clearTimeout(toast.timer);
 }
 
 // "Nov 14, 2026" from an ISO time or a YYYY-MM-DD date, in local time.

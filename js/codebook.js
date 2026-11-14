@@ -92,7 +92,7 @@ export function applyCodebook(current, incoming, importedAt) {
   };
 }
 
-// Sorts "2150" after "2100" and before "2200", numbers first.
+// Sorts "9150" after "9100" and before "9200", numbers first.
 export function compareCodes(a, b) {
   return a.code.localeCompare(b.code, 'en', { numeric: true });
 }
@@ -115,7 +115,7 @@ export function taskNeedsCode(task, codebook) {
   return !c || c.active === false;
 }
 
-// Groups codes by thousands for the picker, e.g. 1000s, 2000s. A group's
+// Groups codes by thousands for the picker, e.g. 8000s, 9000s. A group's
 // title is its x000 code's label when one exists.
 export function groupCodes(codes) {
   const groups = new Map();

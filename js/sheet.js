@@ -2,7 +2,7 @@
 // Used for forms, previews, and confirmations (the browser's own alert and
 // confirm boxes are avoided because they look out of place in an app).
 
-import { esc } from './ui.js';
+import { esc, hideToast } from './ui.js';
 import { icons } from './icons.js';
 
 let openCount = 0;
@@ -11,6 +11,7 @@ let openCount = 0;
 // escapes any saved data it includes). Returns a close() function.
 export function openSheet({ title, bodyHtml, onMount, onClose }) {
   const previousFocus = document.activeElement;
+  hideToast(); // a toast from earlier would sit on top of the form
   const scrim = document.createElement('div');
   scrim.className = 'sheet-scrim';
   scrim.innerHTML = `<section class="sheet" role="dialog" aria-modal="true" aria-label="${esc(title)}">

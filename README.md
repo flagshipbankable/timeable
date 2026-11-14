@@ -6,9 +6,9 @@ accurately.
 
 **Live app:** https://flagshipbankable.github.io/timeable/ (once GitHub Pages is on)
 
-**Status:** early build. The code book, tasks, and backups work. The timer
-and the portal view arrive in the next phases. See `CLAUDE.md` for the full
-plan.
+**Status:** early build. The code book, tasks, backups, and the timer work.
+The portal view (rounded lines with copy buttons) and weekly totals arrive
+next. See `CLAUDE.md` for the full plan.
 
 ## Install on iPhone
 
