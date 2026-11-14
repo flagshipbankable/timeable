@@ -4,8 +4,8 @@ Spec and working rules for Claude in this repo. **Public file:** no names,
 credentials, employer details, job codes, client names, or real data. Use
 placeholders.
 
-**Status:** Approved Nov 14, 2026. Phase 1 built and tested in headless
-Chrome; waiting for Josh's go-ahead to publish.
+**Status:** Approved Nov 14, 2026. v0.1.0 (Phase 1) is live and checked on
+Josh's iPhone. Phase 2 starts when Josh says go.
 
 ## 1. Overview
 
@@ -202,7 +202,7 @@ offline.
 - [x] "How to install" hint
 - [x] `.nojekyll`, README
 - [x] Test: phone, narrow, and desktop screenshots; offline reload; update prompt
-- [ ] Josh's iPhone check after publishing
+- [x] Josh's iPhone check after publishing (Nov 14, 2026)
 
 ### Phase 2 — Code book, tasks, and backup
 - [ ] `store.js` (IndexedDB, schema version 1)
