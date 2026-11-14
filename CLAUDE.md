@@ -4,9 +4,9 @@ Spec and working rules for Claude in this repo. **Public file:** no names,
 credentials, employer details, job codes, client names, or real data. Use
 placeholders.
 
-**Status:** Approved Nov 14, 2026. v0.1.0 (Phase 1) is live. Phase 2
-(v0.2.0) is built and tested in headless Chrome; waiting for Josh's go-ahead
-to publish.
+**Status:** Approved Nov 14, 2026. v0.2.0 (Phases 1–2) is live and checked
+on Josh's iPhone, with his real code book loaded. Phase 3 starts when Josh
+says go.
 
 ## 1. Overview
 
@@ -216,12 +216,13 @@ offline.
 - [x] Task create, edit, delete, and star; "needs a new code" flag
 - [x] Backup export and import with validation
 - [x] Test: import a sample code book, build tasks, export, clear, import
-- [ ] Josh's iPhone check after publishing (Share sheet export, import)
+- [x] Josh's iPhone check after publishing (Nov 14, 2026: update, code book load, tasks, Share sheet export, storage protection granted)
 
 ### Phase 3 — Timer and entries
 - [ ] Clock in, start at, switch, finish; running banner
 - [ ] Custom entries; add past time; edit and delete
 - [ ] Today and this-week totals on the Desk
+- [ ] Settings: reword "Protected from clean-up" so it reads as a status, not a setting (Josh, Nov 14)
 - [ ] Test: timer survives reload and app close; switching; overnight entries
 
 ### Phase 4 — Ready for the portal
