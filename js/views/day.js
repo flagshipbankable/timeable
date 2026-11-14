@@ -8,6 +8,7 @@ import {
   addDays, decimalHours, entryMs, formatClock, formatDayLong, formatHM, formatTime, isValidWorkDate, localDate,
 } from '../time.js';
 import { openEntryForm } from '../entry-forms.js';
+import { overlappingIds } from '../timeline.js';
 import { tickNow } from '../running.js';
 
 // The day being looked at. null means "today", so it follows the calendar.
@@ -26,16 +27,17 @@ function extrasText(e) {
   return parts.join(' · ');
 }
 
-function sessionRow(e, nowMs) {
+function sessionRow(e, nowMs, overlaps) {
   const running = !e.end;
   const nextDay = e.end && localDate(new Date(e.end)) !== e.workDate;
   const code = e.code ? `${e.code} ${e.codeLabel}`.trim() : 'No code yet';
   const meta = [code, e.client].filter(Boolean).join(' · ');
   const extras = extrasText(e);
-  return `<li><button class="session" type="button" data-entry="${esc(e.id)}">
+  const clash = overlaps.has(e.id);
+  return `<li><button class="session${clash ? ' has-overlap' : ''}" type="button" data-entry="${esc(e.id)}">
       <span class="session-time">${esc(formatTime(e.start))} – ${running ? 'now' : esc(formatTime(e.end))}${nextDay ? ' <span class="tag">next day</span>' : ''}</span>
       <span class="session-main">
-        <span class="session-name">${esc(e.taskName)}</span>
+        <span class="session-name">${esc(e.taskName)}${clash ? ` <span class="tag tag-warn">${icons.warn(12)} Overlaps</span>` : ''}</span>
         <span class="session-meta${e.code ? '' : ' is-missing'}">${esc(meta)}</span>
         ${e.notes ? `<span class="session-notes">${esc(e.notes)}</span>` : ''}
         ${extras ? `<span class="session-extras">${esc(extras)}</span>` : ''}
@@ -56,6 +58,9 @@ export async function render(el) {
   const totalMs = entries.reduce((sum, e) => sum + entryMs(e, nowMs), 0);
   const base = totalMs - (running ? entryMs(running, nowMs) : 0);
   const isToday = day === today;
+  // Sessions saved before the overlap rules (or from an imported backup)
+  // could overlap. Point them out so they can be fixed.
+  const overlaps = overlappingIds(entries, nowMs);
 
   el.innerHTML = heading('Day', formatDayLong(day)) + `
     <div class="day-nav">
@@ -71,7 +76,8 @@ export async function render(el) {
       </div>
       <p class="muted small">${entries.length} session${entries.length === 1 ? '' : 's'}${entries.length ? ` · ${decimalHours(totalMs)} hours exact` : ''}</p>
     </section>
-    ${entries.length ? `<ul class="session-list" aria-label="Sessions">${entries.map((e) => sessionRow(e, nowMs)).join('')}</ul>`
+    ${overlaps.size ? `<div class="notice notice-warn">${icons.warn(20)}<p>Some sessions overlap, so those minutes count twice. Tap one and save it to choose how to fix it.</p></div>` : ''}
+    ${entries.length ? `<ul class="session-list" aria-label="Sessions">${entries.map((e) => sessionRow(e, nowMs, overlaps)).join('')}</ul>`
       : `<section class="card empty"><span class="empty-icon">${icons.day(26)}</span><h2>No time logged</h2><p>${isToday ? 'Clock in from the Desk, or add time you forgot.' : 'Nothing was logged on this day.'}</p></section>`}
     <div class="desk-actions">
       <button class="button button-soft" type="button" data-past>${icons.clockPlus(18)} Add past time${isToday ? '' : ' to this day'}</button>

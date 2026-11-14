@@ -6,6 +6,7 @@ import { esc, hideToast } from './ui.js';
 import { icons } from './icons.js';
 
 let openCount = 0;
+const stack = [];
 
 // title is escaped; bodyHtml is trusted markup built by the caller (which
 // escapes any saved data it includes). Returns a close() function.
@@ -20,6 +21,7 @@ export function openSheet({ title, bodyHtml, onMount, onClose }) {
       <div class="sheet-body">${bodyHtml}</div>
     </section>`;
   document.body.append(scrim);
+  stack.push(scrim);
   openCount += 1;
   document.body.classList.add('sheet-open');
 
@@ -28,13 +30,16 @@ export function openSheet({ title, bodyHtml, onMount, onClose }) {
     if (closed) return;
     closed = true;
     scrim.remove();
+    stack.splice(stack.indexOf(scrim), 1);
     openCount -= 1;
     if (openCount === 0) document.body.classList.remove('sheet-open');
     document.removeEventListener('keydown', onKey);
     if (onClose) onClose();
     if (previousFocus && previousFocus.focus) previousFocus.focus({ preventScroll: true });
   };
-  const onKey = (event) => { if (event.key === 'Escape') close(); };
+  // With one sheet over another (like Adjust over a form), Escape closes
+  // only the top one.
+  const onKey = (event) => { if (event.key === 'Escape' && stack[stack.length - 1] === scrim) close(); };
   document.addEventListener('keydown', onKey);
   scrim.addEventListener('mousedown', (event) => { if (event.target === scrim) close(); });
   scrim.querySelector('.sheet-close').addEventListener('click', close);

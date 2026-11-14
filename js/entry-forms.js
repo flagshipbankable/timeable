@@ -1,5 +1,6 @@
 // Pop-up forms for time: start options for a task (the ⋯ button), a one-off
 // timer, and one shared form for adding past time or editing a session.
+// Every save goes through saveTime (adjust.js), which checks for overlaps.
 
 import { icons } from './icons.js';
 import { esc, toast } from './ui.js';
@@ -9,25 +10,38 @@ import { codeText, findCode } from './codebook.js';
 import {
   CUSTOM_CLIENT, clientFieldsHtml, codeOptions, extrasFieldsHtml, extrasFromForm, readClient, wireClientFields,
 } from './fields.js';
-import { CUSTOM_NAME, customEntry, entryFromTask, findOverlaps, readExtras } from './entries.js';
+import { CUSTOM_NAME, customEntry, entryFromTask, readExtras } from './entries.js';
 import {
   addDays, entryMs, formatDay, formatHM, formatTime, isValidWorkDate, localDate, parseDateTimeInput,
   rangeProblem, timeInputValue,
 } from './time.js';
+import { MINUTE, floorMinute, planDelete } from './timeline.js';
+import { adjustedSummary, previewText, saveTime } from './adjust.js';
 import { openTaskForm, sortTasks } from './views/tasks.js';
 
 const CUSTOM_TASK = '__custom__';
 
-// Clocks in and offers Undo. Throws with a plain message if it can't.
-export async function clockInWithUndo(entry) {
-  const token = await store.clockIn(entry);
+const undoAction = (result) => ({
+  action: 'Undo',
+  onAction: () => store.undoChanges(result.undo).then(() => toast('Undone.')).catch((error) => toast(error.message)),
+});
+
+// Clocks in. Ending the running timer at the new start happens on its own;
+// anything more asks first. Starting has no Undo (press-and-hold prevents
+// mis-taps), but a start that adjusted other time can be undone.
+export async function startSession(entry) {
+  const saved = await saveTime(entry);
+  if (!saved) return null;
   store.requestPersistence();
-  const switched = token.endedIds.length > 0;
-  toast(`${switched ? 'Switched to' : 'On the clock:'} ${entry.taskName}`, {
-    action: 'Undo',
-    onAction: () => store.undoClockIn(token).catch((error) => toast(error.message)),
-  });
-  return token;
+  const { plan, asked } = saved;
+  const ended = plan.effects.find((e) => e.type === 'end');
+  const replaced = plan.effects.find((e) => e.type === 'remove' && e.from.e === null);
+  let message = `On the clock: ${entry.taskName}`;
+  if (ended) message += ` · ${ended.entry.taskName} ended ${formatTime(ended.to.e)}`;
+  else if (replaced && !asked) message += ` · ${replaced.entry.taskName} was under a minute, so it wasn’t kept`;
+  if (asked) toast(`${message}.${adjustedSummary(plan)}`, undoAction(saved.result));
+  else toast(message);
+  return saved;
 }
 
 function formError(sheet) {
@@ -38,30 +52,70 @@ function formError(sheet) {
   };
 }
 
-// "Start at" is a time today. If it's left at the time the form opened,
-// the session starts right now, to the second.
-function readStartAt(input, openedValue) {
-  if (input.value === openedValue) return { start: new Date() };
+function showPreview(el, preview) {
+  el.hidden = !preview;
+  el.className = `conflict-hint${preview && preview.tone === 'warn' ? ' is-warn' : ''}`;
+  el.innerHTML = preview ? `${preview.tone === 'warn' ? icons.warn(18) : icons.desk(18)}<span>${esc(preview.text)}</span>` : '';
+}
+
+// Quick times: "Now", "5 min ago", ... They fill a time box.
+const CHIPS = [[0, 'Now'], [5, '5 min ago'], [10, '10 min ago'], [15, '15 min ago']];
+const chipsHtml = (label, pressed = 0) => `<div class="chips" role="group" aria-label="${esc(label)}">${CHIPS.map(([m, text]) =>
+  `<button class="chip-button" type="button" data-ago="${m}" aria-pressed="${m === pressed}">${text}</button>`).join('')}</div>`;
+
+function wireChips(group, input, onPick) {
+  group.querySelectorAll('[data-ago]').forEach((button) => button.addEventListener('click', () => {
+    const minutes = Number(button.dataset.ago);
+    input.value = timeInputValue(new Date(floorMinute(Date.now()) - minutes * MINUTE));
+    group.querySelectorAll('[data-ago]').forEach((b) => b.setAttribute('aria-pressed', String(b === button)));
+    onPick(minutes);
+  }));
+  input.addEventListener('input', () => group.querySelectorAll('[data-ago]').forEach((b) => b.setAttribute('aria-pressed', 'false')));
+}
+
+// "Start at" is a time today. While "Now" is picked, it follows the clock,
+// so a form left open for a few minutes still starts at the real time.
+function readStart(input, followNow) {
+  if (followNow) return { start: new Date(floorMinute(Date.now())) };
   const start = parseDateTimeInput(`${localDate()}T${input.value}`);
   if (!start) return { error: 'Pick a start time.' };
-  if (start.getTime() > Date.now() + 60000) return { error: 'That time is later than now. For time before midnight, use Add past time.' };
+  if (start.getTime() > Date.now()) return { error: 'That time is later than now. For time before midnight, use Add past time.' };
   return { start };
 }
 
 const notesField = (value = '') => `<label>Notes<span class="hint">Optional. Added to the day's activity summary.</span>
   <textarea name="notes" rows="2" maxlength="1000">${esc(value)}</textarea></label>`;
 
+// The start-time part of the start forms: time box, quick chips, preview.
+const startFieldsHtml = () => `<div class="start-at">
+    <label>Start at<input name="startAt" type="time" value="${timeInputValue(new Date())}" required></label>
+    ${chipsHtml('Quick start times')}
+    <p class="conflict-hint" aria-live="polite" hidden></p>
+  </div>`;
+
+function wireStart(sheet, form, entries, buildEntry) {
+  let followNow = true;
+  const hint = sheet.querySelector('.start-at .conflict-hint');
+  const refresh = () => {
+    const { start } = readStart(form.startAt, followNow);
+    showPreview(hint, start ? previewText(buildEntry(start), entries, Date.now(), 'start') : null);
+  };
+  wireChips(sheet.querySelector('.start-at .chips'), form.startAt, (minutes) => { followNow = minutes === 0; refresh(); });
+  form.startAt.addEventListener('input', () => { followNow = false; refresh(); });
+  refresh();
+  return { read: () => readStart(form.startAt, followNow) };
+}
+
 // ---- The ⋯ button on a Desk row
 
-export function openStartSheet(task, codebook, tasks) {
-  const opened = timeInputValue(new Date());
+export async function openStartSheet(task, codebook, tasks) {
+  const entries = await store.listEntries();
   const code = findCode(codebook, task.code);
   openSheet({
     title: task.name,
     bodyHtml: `<p class="muted sheet-sub">${esc(code ? codeText(code) : task.code)}${task.client ? ` · ${esc(task.client)}` : ''}</p>
       <form class="form" id="start-form" novalidate>
-        <label>Start at<span class="hint">Change it if you started earlier today.</span>
-          <input name="startAt" type="time" value="${opened}" required></label>
+        ${startFieldsHtml()}
         ${clientFieldsHtml(codebook, task.client, { label: 'Client for this session', blankLabel: 'None' })}
         ${notesField()}
         <p class="form-error" role="alert" hidden></p>
@@ -78,19 +132,20 @@ export function openStartSheet(task, codebook, tasks) {
       const form = sheet.querySelector('#start-form');
       const error = formError(sheet);
       wireClientFields(form);
+      const start = wireStart(sheet, form, entries, (s) => entryFromTask(task, codebook, { start: s }));
       sheet.querySelector('[data-close]').addEventListener('click', close);
       sheet.querySelector('[data-past]').addEventListener('click', () => { close(); openEntryForm({ taskId: task.id }); });
       sheet.querySelector('[data-edit-task]').addEventListener('click', () => { close(); openTaskForm(task, codebook, tasks); });
       form.addEventListener('submit', async (e) => {
         e.preventDefault();
         error.clear();
-        const { start, error: startError } = readStartAt(form.startAt, opened);
+        const { start: s, error: startError } = start.read();
         if (startError) return error.show(startError, form.startAt);
         const client = readClient(form);
         if (client === null) return error.show('Type the client’s name, or pick another option.', form.customClient);
         try {
-          await clockInWithUndo(entryFromTask(task, codebook, { start, client, notes: form.notes.value.trim() }));
-          close();
+          const saved = await startSession(entryFromTask(task, codebook, { start: s, client, notes: form.notes.value.trim() }));
+          if (saved) close();
         } catch (err) {
           error.show(err.message, form.startAt);
         }
@@ -101,8 +156,8 @@ export function openStartSheet(task, codebook, tasks) {
 
 // ---- A one-off timer that isn't tied to a task
 
-export function openCustomStart(codebook) {
-  const opened = timeInputValue(new Date());
+export async function openCustomStart(codebook) {
+  const entries = await store.listEntries();
   openSheet({
     title: 'Clock in on something else',
     bodyHtml: `<form class="form" id="custom-form" novalidate>
@@ -112,7 +167,7 @@ export function openCustomStart(codebook) {
           <select name="code">${codeOptions(codebook, '', { optional: true })}</select></label>
         ${clientFieldsHtml(codebook, '', { blankLabel: 'None yet' })}
         ${notesField()}
-        <label>Start at<input name="startAt" type="time" value="${opened}" required></label>
+        ${startFieldsHtml()}
         <p class="form-error" role="alert" hidden></p>
         <div class="button-row">
           <button class="button" type="submit">${icons.play(18)} Start</button>
@@ -123,20 +178,22 @@ export function openCustomStart(codebook) {
       const form = sheet.querySelector('#custom-form');
       const error = formError(sheet);
       wireClientFields(form);
+      const build = (s) => customEntry(codebook, { name: form.customName.value, code: form.code.value, start: s });
+      const start = wireStart(sheet, form, entries, build);
       sheet.querySelector('[data-close]').addEventListener('click', close);
       form.addEventListener('submit', async (e) => {
         e.preventDefault();
         error.clear();
-        const { start, error: startError } = readStartAt(form.startAt, opened);
+        const { start: s, error: startError } = start.read();
         if (startError) return error.show(startError, form.startAt);
         const client = readClient(form);
         if (client === null) return error.show('Type the client’s name, or pick another option.', form.customClient);
         const entry = customEntry(codebook, {
-          name: form.customName.value, code: form.code.value, client, notes: form.notes.value.trim(), start,
+          name: form.customName.value, code: form.code.value, client, notes: form.notes.value.trim(), start: s,
         });
         try {
-          await clockInWithUndo(entry);
-          close();
+          const saved = await startSession(entry);
+          if (saved) close();
         } catch (err) {
           error.show(err.message, form.startAt);
         }
@@ -164,7 +221,7 @@ function setClient(form, codebook, client) {
 }
 
 // Builds start and end from the form. Fields left as they were keep their
-// exact saved times, so editing only the notes never shifts a session.
+// saved times, so editing only the notes never shifts a session.
 function readTimes(form, init, entry) {
   const date = form.workDate.value;
   const startTime = form.startTime.value;
@@ -182,7 +239,7 @@ function readTimes(form, init, entry) {
     if (!startChanged && !endChanged && entry.end) end = new Date(entry.end);
     else {
       end = parseDateTimeInput(`${date}T${endTime}`);
-      if (end && end.getTime() <= start.getTime()) { end = parseDateTimeInput(`${addDays(date, 1)}T${endTime}`); overnight = true; }
+      if (end && end.getTime() <= start.getTime()) end = parseDateTimeInput(`${addDays(date, 1)}T${endTime}`);
       if (!end) return { error: 'That end time doesn’t exist (clocks changed that night). Pick another.', field: form.endTime };
     }
     overnight = localDate(end) !== localDate(start);
@@ -218,10 +275,11 @@ export async function openEntryForm({ entry = null, workDate, taskId } = {}) {
           <label>Start<input name="startTime" type="time" value="${esc(init.start)}" required></label>
           <label>End<input name="endTime" type="time" value="${esc(init.end)}"></label>
         </div>
+        ${isRunning ? `<div class="end-chips"><p class="chips-label">Finish at</p>${chipsHtml('Quick finish times', -1)}</div>` : ''}
         <p class="time-hint muted small" aria-live="polite"></p>
+        <p class="conflict-hint" aria-live="polite" hidden></p>
         ${notesField(e.notes)}
         ${extrasFieldsHtml(e)}
-        <div class="notice notice-warn overlap" hidden>${icons.warn(20)}<p></p></div>
         <p class="form-error" role="alert" hidden></p>
         <div class="button-row">
           <button class="button" type="submit">${isNew ? 'Add' : 'Save'}</button>
@@ -238,11 +296,35 @@ export async function openEntryForm({ entry = null, workDate, taskId } = {}) {
       const form = sheet.querySelector('#entry-form');
       const error = formError(sheet);
       const hint = sheet.querySelector('.time-hint');
-      const overlapBox = sheet.querySelector('.overlap');
-      const submit = form.querySelector('[type="submit"]');
-      let overlapOk = false;
+      const conflict = sheet.querySelector('#entry-form > .conflict-hint');
       wireClientFields(form);
       sheet.querySelector('[data-close]').addEventListener('click', close);
+
+      // The session as the form describes it right now, for the preview.
+      const candidate = () => {
+        const times = readTimes(form, init, entry);
+        if (times.error || (!times.end && !isRunning)) return null;
+        const t = tasks.find((x) => x.id === form.task.value);
+        const name = form.task.value === CUSTOM_TASK ? (form.customName.value.trim() || CUSTOM_NAME)
+          : t ? t.name : entry ? entry.taskName : 'This session';
+        return {
+          ...(entry || {}), taskName: name, workDate: times.workDate,
+          start: times.start.toISOString(), end: times.end ? times.end.toISOString() : null,
+        };
+      };
+
+      const refresh = () => {
+        const times = readTimes(form, init, entry);
+        if (!form.endTime.value) {
+          hint.textContent = isRunning ? 'Leave End blank while it’s still running, or fill it in to finish at that time.' : '';
+        } else if (times.error || !times.end) {
+          hint.textContent = '';
+        } else {
+          hint.textContent = `${formatHM(times.end - times.start)}${times.overnight ? ' · ends the next day' : ''}`;
+        }
+        const c = candidate();
+        showPreview(conflict, c ? previewText(c, allEntries, Date.now()) : null);
+      };
 
       form.task.addEventListener('change', () => {
         const custom = form.task.value === CUSTOM_TASK;
@@ -250,23 +332,15 @@ export async function openEntryForm({ entry = null, workDate, taskId } = {}) {
         const t = tasks.find((x) => x.id === form.task.value);
         if (t) { form.code.value = t.code; setClient(form, codebook, t.client); }
         if (custom) form.customName.focus();
+        refresh();
       });
-
-      const showHint = () => {
-        if (!form.endTime.value) {
-          hint.textContent = isRunning ? 'Leave End blank while it’s still running, or fill it in to finish at that time.' : '';
-          return;
-        }
-        const times = readTimes(form, init, entry);
-        if (times.error || !times.end) { hint.textContent = ''; return; }
-        hint.textContent = `${formatHM(times.end - times.start)}${times.overnight ? ' · ends the next day' : ''}`;
-      };
-      const timesChanged = () => { overlapOk = false; overlapBox.hidden = true; submit.textContent = isNew ? 'Add' : 'Save'; showHint(); };
       ['workDate', 'startTime', 'endTime'].forEach((name) => {
-        form[name].addEventListener('input', timesChanged);
-        form[name].addEventListener('change', timesChanged);
+        form[name].addEventListener('input', refresh);
+        form[name].addEventListener('change', refresh);
       });
-      showHint();
+      const endChips = sheet.querySelector('.end-chips .chips');
+      if (endChips) wireChips(endChips, form.endTime, refresh);
+      refresh();
 
       form.addEventListener('submit', async (ev) => {
         ev.preventDefault();
@@ -314,23 +388,19 @@ export async function openEntryForm({ entry = null, workDate, taskId } = {}) {
           end: times.end ? times.end.toISOString() : null,
         };
 
-        const overlaps = findOverlaps(record, allEntries, Date.now());
-        if (overlaps.length && !overlapOk) {
-          overlapOk = true;
-          const list = overlaps.slice(0, 3).map((o) => `${o.taskName}, ${formatDay(o.workDate)} ${formatTime(o.start)}–${o.end ? formatTime(o.end) : 'now'}`).join('; ');
-          overlapBox.querySelector('p').textContent = `This overlaps ${list}. Overlapping time counts twice. Change the times, or tap Save anyway.`;
-          overlapBox.hidden = false;
-          submit.textContent = 'Save anyway';
-          overlapBox.scrollIntoView({ block: 'nearest' });
-          return;
-        }
-
         try {
-          const saved = await store.saveEntry(record);
+          const saved = await saveTime(record);
+          if (!saved) return; // went back to change the times
           store.requestPersistence();
           close();
-          if (isNew) toast(`Added ${formatHM(entryMs(saved, Date.now()))} on ${formatDay(saved.workDate)}.`);
-          else toast(isRunning && saved.end ? `Finished ${saved.taskName}.` : 'Session saved.');
+          const summary = adjustedSummary(saved.plan);
+          const mine = saved.result.written.filter((w) => saved.plan.proposedIds.includes(w.id) && !w.deleted);
+          const total = mine.reduce((sum, w) => sum + entryMs(w, Date.now()), 0);
+          let message;
+          if (isNew) message = `Added ${formatHM(total)} on ${formatDay(record.workDate)}.`;
+          else if (isRunning && record.end) message = `Finished ${record.taskName}.`;
+          else message = 'Session saved.';
+          toast(`${message}${summary}`, undoAction(saved.result));
         } catch (err) {
           error.show(err.message);
         }
@@ -342,12 +412,14 @@ export async function openEntryForm({ entry = null, workDate, taskId } = {}) {
         del.addEventListener('click', () => { confirmBox.hidden = false; del.hidden = true; });
         sheet.querySelector('[data-keep]').addEventListener('click', () => { confirmBox.hidden = true; del.hidden = false; });
         sheet.querySelector('[data-confirm-delete]').addEventListener('click', async () => {
-          await store.deleteEntry(entry.id);
-          close();
-          toast('Session deleted.', {
-            action: 'Undo',
-            onAction: () => store.restoreEntry(entry.id).catch((err) => toast(err.message)),
-          });
+          try {
+            const fresh = await store.getEntry(entry.id);
+            const result = await store.applyChanges(planDelete(fresh).changes);
+            close();
+            toast('Session deleted.', undoAction(result));
+          } catch (err) {
+            error.show(err.message);
+          }
         });
       }
     },

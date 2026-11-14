@@ -2,6 +2,8 @@
 // IndexedDB on this device. Records are sync-ready: random IDs, updatedAt
 // times, and a deleted flag instead of real deletes.
 
+import { timelineProblem } from './timeline.js';
+
 const DB_NAME = 'timeable';
 export const SCHEMA_VERSION = 1;
 
@@ -164,89 +166,55 @@ export async function getRunningEntry() {
   return (await listEntries()).find((e) => !e.end) || null;
 }
 
-// Clocking in ends whatever is running at the new start time and saves the
-// new entry, in one transaction, so there's never a moment with two timers
-// or none. Returns what's needed to undo it.
-export async function clockIn(entry) {
-  const startMs = Date.parse(entry.start);
+// A record is unchanged if these still match what the plan was built from.
+const sameVersion = (a, b) => a.updatedAt === b.updatedAt && a.start === b.start
+  && a.end === b.end && Boolean(a.deleted) === Boolean(b.deleted);
+
+export class StaleError extends Error {}
+
+// Applies a plan (a list of { before, after } record changes) in one
+// transaction. Every time change in the app comes through here, so two
+// checks protect every save:
+//   1. Nothing it touches changed since the plan was made (otherwise it
+//      stops and asks to try again, instead of overwriting newer time).
+//   2. Afterward, no minute counts twice and only one timer runs.
+// Returns the records written and the reverse plan, for Undo.
+export async function applyChanges(changes) {
+  if (!changes.length) return { written: [], undo: [] };
+  const stamp = now();
   const result = await run(['entries'], 'readwrite', async (tx) => {
     const entries = tx.objectStore('entries');
     const all = await req(entries.getAll());
-    const running = all.filter((e) => !e.deleted && !e.end);
-    if (running.some((r) => Date.parse(r.start) > startMs)) {
-      throw new Error('That start time is before the current timer started. Finish or edit the current session first.');
+    const byId = new Map(all.map((e) => [e.id, e]));
+    for (const c of changes) {
+      const current = byId.get((c.after || c.before).id) || null;
+      const ok = c.before ? current && sameVersion(current, c.before) : !current;
+      if (!ok) throw new StaleError('Your time changed while this was open. Please try again.');
     }
-    const stamp = now();
-    for (const r of running) entries.put({ ...r, end: entry.start, updatedAt: stamp });
-    const record = { ...entry, id: newId(), deleted: false, createdAt: stamp, updatedAt: stamp };
-    entries.put(record);
-    return { created: record, endedIds: running.map((r) => r.id) };
+    const written = changes.map((c) => ({ ...c.after, createdAt: c.after.createdAt || stamp, updatedAt: stamp }));
+    for (const w of written) byId.set(w.id, w);
+    const problem = timelineProblem([...byId.values()], new Set(written.map((w) => w.id)), Date.now());
+    if (problem) throw new Error(`Not saved: ${problem}`);
+    for (const w of written) entries.put(w);
+    const undo = changes.map((c, i) => ({
+      before: written[i],
+      after: c.before ? { ...c.before } : { ...written[i], deleted: true },
+    }));
+    return { written, undo };
   });
   changed('entries');
   return result;
 }
 
-// Reverses a clock-in: removes the new entry and restarts the one it ended.
-export async function undoClockIn({ created, endedIds }) {
-  await run(['entries'], 'readwrite', async (tx) => {
-    const entries = tx.objectStore('entries');
-    const stamp = now();
-    const current = await req(entries.get(created.id));
-    if (current) entries.put({ ...current, deleted: true, updatedAt: stamp });
-    for (const id of endedIds) {
-      const e = await req(entries.get(id));
-      if (e && e.end === created.start) entries.put({ ...e, end: null, updatedAt: stamp });
-    }
-  });
-  changed('entries');
-}
-
-export async function finishRunning(endIso) {
-  const running = await getRunningEntry();
-  if (!running) return null;
-  if (Date.parse(endIso) < Date.parse(running.start)) throw new Error('The end has to be after the start.');
-  return saveEntry({ ...running, end: endIso });
-}
-
-// Saves a new or edited entry (past time, custom entries, edits).
-export async function saveEntry(entry) {
-  const stamp = now();
-  const record = { ...entry, id: entry.id || newId(), deleted: false, createdAt: entry.createdAt || stamp, updatedAt: stamp };
-  await run(['entries'], 'readwrite', (tx) => req(tx.objectStore('entries').put(record)));
-  changed('entries');
-  return record;
-}
-
-// Undo for Finish: restarts the entry, as long as nothing else has started.
-export async function reopenEntry(id, expectedEnd) {
-  await run(['entries'], 'readwrite', async (tx) => {
-    const entries = tx.objectStore('entries');
-    const all = await req(entries.getAll());
-    if (all.some((e) => !e.deleted && !e.end && e.id !== id)) throw new Error('Another timer is running now, so this one can\u2019t restart.');
-    const e = all.find((x) => x.id === id);
-    if (e && !e.deleted && e.end === expectedEnd) entries.put({ ...e, end: null, updatedAt: now() });
-  });
-  changed('entries');
-}
-
-// Undo for Delete.
-export async function restoreEntry(id) {
-  await run(['entries'], 'readwrite', async (tx) => {
-    const entries = tx.objectStore('entries');
-    const all = await req(entries.getAll());
-    const e = all.find((x) => x.id === id);
-    if (!e) return;
-    if (!e.end && all.some((x) => !x.deleted && !x.end && x.id !== id)) throw new Error('Another timer is running now. Finish it first, then undo.');
-    entries.put({ ...e, deleted: false, updatedAt: now() });
-  });
-  changed('entries');
-}
-
-export async function deleteEntry(id) {
-  const entry = await getEntry(id);
-  if (!entry) return;
-  await run(['entries'], 'readwrite', (tx) => req(tx.objectStore('entries').put({ ...entry, deleted: true, updatedAt: now() })));
-  changed('entries');
+// Undo: applies the reverse plan, with the same checks. If the time was
+// used again since, it explains instead of double-counting.
+export async function undoChanges(undo) {
+  try {
+    return await applyChanges(undo);
+  } catch (error) {
+    if (error instanceof StaleError) throw new Error('Can\u2019t undo: that time has changed since.');
+    throw new Error(`Can\u2019t undo: ${error.message.replace(/^Not saved: /, '')}`);
+  }
 }
 
 // ---- Backup

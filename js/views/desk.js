@@ -1,4 +1,4 @@
-// Desk: today's totals and the task list. One tap on a task clocks in.
+// Desk: today's totals and the task list. Press and hold a task to clock in.
 
 import { icons } from '../icons.js';
 import { esc, heading, prefs, toast } from '../ui.js';
@@ -6,11 +6,16 @@ import * as store from '../store.js';
 import { findCode, taskNeedsCode } from '../codebook.js';
 import { entryFromTask, totals } from '../entries.js';
 import { entryMs, formatClock, formatHM, localDate } from '../time.js';
-import { clockInWithUndo, openCustomStart, openEntryForm, openStartSheet } from '../entry-forms.js';
+import { floorMinute } from '../timeline.js';
+import { openCustomStart, openEntryForm, openStartSheet, startSession } from '../entry-forms.js';
 import { tickNow } from '../running.js';
 import { openTaskForm, sortTasks } from './tasks.js';
 
 export const weeklyTargetHours = () => Number(prefs.get('weeklyTargetHours', 40)) || 40;
+
+// How long a press has to last to clock in (Josh chose press-and-hold so a
+// stray tap never starts the wrong timer).
+export const HOLD_MS = 500;
 
 function totalsCard(entries, running) {
   const nowMs = Date.now();
@@ -40,23 +45,89 @@ function totalsCard(entries, running) {
     </section>`;
 }
 
+// The ring that fills while you hold. 2πr for r = 15 is about 94.25.
+const holdRing = `<span class="hold-ring" aria-hidden="true"><svg viewBox="0 0 36 36" width="34" height="34">
+    <circle class="hold-track" cx="18" cy="18" r="15"/><circle class="hold-fill" cx="18" cy="18" r="15"/></svg>
+    <span class="hold-icon">${icons.play(14)}</span></span>`;
+
 function taskRow(task, codebook, running) {
   const needs = taskNeedsCode(task, codebook);
   const isRunning = running && running.taskId === task.id;
   const code = findCode(codebook, task.code);
   const meta = [code ? `${code.code} ${code.label}` : task.code, task.client].filter(Boolean).join(' · ');
+  const label = isRunning ? `${task.name}, on the clock` : `${task.name}. Press and hold to clock in.`;
   return `<li class="desk-row${isRunning ? ' is-running' : ''}${needs ? ' needs-code' : ''}">
-      <button class="desk-main" type="button" data-start="${esc(task.id)}" aria-label="${esc(isRunning ? `${task.name}, on the clock` : `Clock in: ${task.name}`)}">
+      <button class="desk-main" type="button" data-start="${esc(task.id)}" aria-label="${esc(label)}">
         <span class="desk-star">${task.favorite ? icons.starFilled(16) : ''}</span>
         <span class="desk-text">
           <span class="desk-name">${esc(task.name)}</span>
           <span class="desk-meta">${esc(meta)}</span>
           ${needs ? `<span class="tag tag-warn">${icons.warn(14)} Needs a new code</span>` : ''}
         </span>
-        ${isRunning ? `<span class="desk-live"><span class="pulse" aria-hidden="true"></span><span data-live="clock">${formatClock(entryMs(running, Date.now()))}</span></span>` : ''}
+        ${isRunning
+          ? `<span class="desk-live"><span class="pulse" aria-hidden="true"></span><span data-live="clock">${formatClock(entryMs(running, Date.now()))}</span></span>`
+          : needs ? '' : holdRing}
       </button>
       <button class="icon-button desk-more" type="button" data-more="${esc(task.id)}" aria-label="${esc(`More for ${task.name}`)}">${icons.more(22)}</button>
     </li>`;
+}
+
+// Press and hold: the ring fills over HOLD_MS, then the clock starts. Letting
+// go early, sliding a finger, or scrolling cancels. A keyboard press (Enter
+// or Space) starts right away, since it can't be a stray touch.
+function wireHold(button, { onHold, onShortPress }) {
+  let timer = null;
+  let origin = null;
+  const stop = () => {
+    clearTimeout(timer);
+    timer = null;
+    button.classList.remove('is-holding');
+    window.removeEventListener('scroll', cancelOnScroll, true);
+  };
+  const cancelOnScroll = () => stop();
+  button.addEventListener('pointerdown', (e) => {
+    if (e.button !== 0 || timer) return;
+    origin = { x: e.clientX, y: e.clientY };
+    button.classList.add('is-holding');
+    window.addEventListener('scroll', cancelOnScroll, true);
+    timer = setTimeout(() => {
+      stop();
+      button.classList.add('is-held');
+      onHold();
+    }, HOLD_MS);
+  });
+  button.addEventListener('pointerup', () => { if (timer) { stop(); onShortPress(); } });
+  button.addEventListener('pointercancel', stop);
+  button.addEventListener('pointerleave', stop);
+  button.addEventListener('pointermove', (e) => {
+    if (timer && origin && Math.hypot(e.clientX - origin.x, e.clientY - origin.y) > 12) stop();
+  });
+  button.addEventListener('contextmenu', (e) => e.preventDefault());
+  button.addEventListener('click', (e) => { if (e.detail === 0) onHold(); });
+}
+
+// Two holds in a row can't both start: the second waits for the first.
+let starting = false;
+
+async function holdStart(task, tasks, codebook) {
+  if (starting) return;
+  if (taskNeedsCode(task, codebook)) {
+    toast(`“${task.name}” needs a new code first.`, { action: 'Fix', onAction: () => openTaskForm(task, codebook, tasks) });
+    return;
+  }
+  starting = true;
+  try {
+    const current = await store.getRunningEntry();
+    if (current && current.taskId === task.id) {
+      toast(`Already on the clock for ${task.name}.`);
+      return;
+    }
+    await startSession(entryFromTask(task, codebook, { start: new Date(floorMinute(Date.now())) }));
+  } catch (error) {
+    toast(error.message);
+  } finally {
+    starting = false;
+  }
 }
 
 export async function render(el) {
@@ -64,8 +135,13 @@ export async function render(el) {
     store.getCodebook(), store.listTasks(), store.listEntries(), store.getRunningEntry(),
   ]);
 
+  const actions = `<div class="desk-actions">
+      <button class="button button-soft" type="button" data-custom>${icons.play(18)} Clock in on something else</button>
+      <button class="button button-soft" type="button" data-past>${icons.clockPlus(18)} Add past time</button>
+    </div>`;
+
   if (!codebook || tasks.length === 0) {
-    el.innerHTML = heading('Desk', 'Tap a task to clock in.') + `
+    el.innerHTML = heading('Desk', 'Press and hold a task to clock in.') + `
       <section class="card">
         <h2>Get set up</h2>
         <ol class="setup">
@@ -73,58 +149,35 @@ export async function render(el) {
           <li><a href="#tasks">Add your tasks</a>, named like your portal templates</li>
         </ol>
       </section>
-      ${codebook ? `${totalsCard(entries, running)}<div class="desk-actions">
-        <button class="button button-soft" type="button" data-custom>${icons.play(18)} Clock in on something else</button>
-        <button class="button button-soft" type="button" data-past>${icons.clockPlus(18)} Add past time</button></div>` : ''}`;
+      ${codebook ? totalsCard(entries, running) + actions : ''}`;
     wireExtras(el, codebook);
     tickNow();
     return;
   }
 
   const sorted = sortTasks(tasks);
-  el.innerHTML = heading('Desk', running ? 'Tap another task to switch.' : 'Tap a task to clock in.')
+  el.innerHTML = heading('Desk', running ? 'Press and hold another task to switch.' : 'Press and hold a task to clock in.')
     + totalsCard(entries, running)
-    + `<ul class="desk-list" aria-label="Your tasks">${sorted.map((t) => taskRow(t, codebook, running)).join('')}</ul>
-      <div class="desk-actions">
-        <button class="button button-soft" type="button" data-custom>${icons.play(18)} Clock in on something else</button>
-        <button class="button button-soft" type="button" data-past>${icons.clockPlus(18)} Add past time</button>
-      </div>`;
+    + `<ul class="desk-list" aria-label="Your tasks">${sorted.map((t) => taskRow(t, codebook, running)).join('')}</ul>`
+    + actions;
 
-  el.querySelectorAll('[data-start]').forEach((button) => button.addEventListener('click', () => quickStart(button, tasks, codebook)));
+  el.querySelectorAll('[data-start]').forEach((button) => {
+    const task = tasks.find((t) => t.id === button.dataset.start);
+    wireHold(button, {
+      onHold: () => holdStart(task, tasks, codebook),
+      onShortPress: () => {
+        if (taskNeedsCode(task, codebook)) holdStart(task, tasks, codebook);
+        else if (running && running.taskId === task.id) toast(`Already on the clock for ${task.name}.`);
+        else toast('Press and hold to clock in.');
+      },
+    });
+  });
   el.querySelectorAll('[data-more]').forEach((button) => button.addEventListener('click', () => {
     const task = tasks.find((t) => t.id === button.dataset.more);
     openStartSheet(task, codebook, tasks);
   }));
   wireExtras(el, codebook);
   tickNow();
-}
-
-// One tap clocks in. A second tap while the first is still saving is
-// ignored, so a quick double tap can't start two sessions.
-let starting = false;
-
-async function quickStart(button, tasks, codebook) {
-  if (starting) return;
-  const task = tasks.find((t) => t.id === button.dataset.start);
-  if (taskNeedsCode(task, codebook)) {
-    toast(`“${task.name}” needs a new code first.`, { action: 'Fix', onAction: () => openTaskForm(task, codebook, tasks) });
-    return;
-  }
-  starting = true;
-  button.disabled = true;
-  try {
-    const current = await store.getRunningEntry();
-    if (current && current.taskId === task.id) {
-      toast(`Already on the clock for ${task.name}.`);
-      return;
-    }
-    await clockInWithUndo(entryFromTask(task, codebook, { start: new Date() }));
-  } catch (error) {
-    toast(error.message);
-  } finally {
-    starting = false;
-    button.disabled = false;
-  }
 }
 
 function wireExtras(el, codebook) {

@@ -5,8 +5,9 @@ credentials, employer details, job codes, client names, or real data. Use
 placeholders.
 
 **Status:** Approved Nov 14, 2026. v0.2.0 (Phases 1–2) is live and checked
-on Josh's iPhone, with his real code book loaded. v0.3.0 (Phase 3) is built
-and tested on the `phase-3` branch, waiting for Josh's go to publish.
+on Josh's iPhone, with his real code book loaded. v0.3.1 (Phase 3 plus Josh's
+review changes) is built and tested on the `phase-3` branch, waiting for
+Josh's go to publish. (0.3.0 was never published.)
 
 ## 1. Overview
 
@@ -71,11 +72,14 @@ hours**, **Preparation hours**, **Miles**, **Destination** (optional),
 - The Desk lists tasks as full-width rows (favorites first, then A–Z), each
   showing its code and client, so every task stays in the same spot (Josh,
   Nov 14).
-- Tap a task to clock in. An Undo shows for a few seconds after clocking in,
-  switching, finishing, or deleting. A quick double tap starts only one
-  session.
-- Each row's ⋯ button has "Start at…" (backdates the start), a client for
-  this session, notes, "Add past time for this task", and "Edit task".
+- **Press and hold** a task (about half a second, while a ring fills) to clock
+  in. A quick tap only shows a hint, and sliding or scrolling cancels, so a
+  stray tap never starts the wrong timer (Josh, Nov 14). Enter or Space on a
+  keyboard starts right away.
+- Starting has no Undo. Finishing, deleting, and adjusting overlaps do.
+- Each row's ⋯ button has "Start at…" with quick chips (Now, 5, 10, 15 min
+  ago) and a live preview of what will change, a client for this session,
+  notes, "Add past time for this task", and "Edit task".
 - Tapping a new task ends the running one at the new start time.
 - A task whose code is retired can't be clocked into until it gets a new code.
 - An "On the clock" banner on every screen, with a live timer and Edit and
@@ -84,9 +88,28 @@ hours**, **Preparation hours**, **Miles**, **Destination** (optional),
   optional so time can be captured fast and sorted out later.
 - Add past time with a work date, start and end, and overnight handling.
 - Edit any field, or delete. Editing other fields never shifts a session's
-  exact start and end.
-- Saving time that overlaps another session shows a warning first, since
-  overlapping time counts twice.
+  start and end. Editing the running session offers quick finish chips.
+- Times are saved to the whole minute, so what's shown is what's counted.
+  A session under a minute isn't kept (for example, a wrong task fixed in
+  the same minute).
+- **No minute ever counts for two sessions** (Josh, Nov 14). Overlaps are
+  adjustments, not warnings:
+  - Ending the running timer at a new start happens on its own.
+  - Any other overlap opens **Adjust overlapping time**, showing before and
+    after timelines and every change in words. Its two options:
+    1. Keep the new time and change the other time (trim, split, end, or
+       remove it).
+    2. Keep the other time and fit the new time around it (start later,
+       shorten it, or fill the free gaps). If there's no free time, this
+       option is shown as not possible, with the reason.
+  - Go back returns to the form with nothing saved.
+  - Forms preview overlaps while you type.
+  - The store refuses any save that would double-count minutes, and Undo
+    refuses if the time has been used again since.
+- When a session is split, travel, prep, miles, destination, and expenses
+  stay on the first piece so they're never counted twice.
+- Sessions that already overlap (from older data or an imported backup) are
+  flagged on the Day screen. Saving one opens Adjust.
 - A session that runs past midnight counts on the day it started.
 - Every entry keeps a copy of its task name, service code, code label, and
   billable status from the moment it was logged.
@@ -187,6 +210,8 @@ timeable/
 ├── js/fields.js            shared form fields: code, client, extras
 ├── js/entry-forms.js       start options, one-off timer, past time, edit
 ├── js/running.js           the "On the clock" bar and live timer
+├── js/timeline.js          the no-double-counting rule: overlaps and plans
+├── js/adjust.js            saving time safely; the Adjust overlapping time sheet
 ├── js/views/               one file per screen: desk, day, week, tasks,
 │                           settings, codes (code book editor, #codes)
 ├── icons/                  app icons: 192, 512, maskable 512, Apple 180
@@ -244,6 +269,8 @@ offline.
 - [x] Desk redesign: full-width rows, one-tap clock-in with Undo, ⋯ options (Josh, Nov 14)
 - [x] Day tab: the day's sessions with date navigation (portal lines come in Phase 4)
 - [x] Test: timer survives reload and app close; switching; overnight entries
+- [x] Josh's review of 0.3.0 (Nov 14): press-and-hold, no double-counted minutes, Adjust overlapping time, quick time chips, whole minutes
+- [x] Test: every overlap shape, 3,000 random timelines, store guard, stale Undo, old overlapping data
 - [ ] Josh's iPhone check after publishing
 
 ### Phase 4 — Ready for the portal
@@ -270,4 +297,9 @@ offline.
   Start at, the "On the clock" bar with Edit and Finish, one-off timers, past
   time with overnight handling, editing and deleting sessions, overlap
   warnings, Today and This week totals, the Day tab's session list, and the
-  "Storage protection: On" wording.
+  "Storage protection: On" wording. (Built and reviewed; not published.)
+- 0.3.1 — Nov 14, 2026 — Josh's review: press and hold to clock in, times
+  saved to the whole minute, and no minute counted twice. Overlaps now open
+  "Adjust overlapping time" with clear options instead of a warning. Also
+  quick start and finish chips, live previews, Undo for adjustments, and
+  overlap flags on the Day screen.

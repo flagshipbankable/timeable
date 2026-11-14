@@ -103,11 +103,3 @@ export function newestFirst(a, b) {
   return Date.parse(b.start) - Date.parse(a.start);
 }
 
-// Other sessions whose time overlaps this one (a running session counts up
-// to now). Used to warn before saving, since overlaps would count time twice.
-export function findOverlaps(entry, entries, nowMs) {
-  const start = Date.parse(entry.start);
-  const end = entry.end ? Date.parse(entry.end) : nowMs;
-  return entries.filter((e) => !e.deleted && e.id !== entry.id
-    && Date.parse(e.start) < end && (e.end ? Date.parse(e.end) : nowMs) > start);
-}

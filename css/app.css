@@ -405,7 +405,9 @@ body.sheet-open { overflow: hidden; }
 }
 .sheet-links { display: flex; flex-wrap: wrap; gap: 4px 20px; border-top: 1px solid var(--border); padding-top: 6px; }
 .sheet-sub { margin: -4px 0 12px; }
-.form-two { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+/* minmax(0, 1fr) lets the columns shrink below a time box's built-in width. */
+.form-two { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.form-two input { width: 100%; }
 .time-hint { margin: -6px 0 0; min-height: 1.2em; }
 .time-hint:empty { display: none; }
 .extras { border: 1px solid var(--border); border-radius: 12px; padding: 0 12px; }
@@ -523,6 +525,88 @@ body.has-running .toast { bottom: calc(var(--tabbar-height) + env(safe-area-inse
   display: inline-flex; align-items: center; gap: 6px;
   font-weight: 700; color: var(--teal-900); font-variant-numeric: tabular-nums;
 }
+
+/* ---- 0.3.1: press and hold, quick times, adjusting overlaps ---- */
+
+/* Press and hold. No text selection or callout menu during a long press;
+   touch-action stays at its default because iPhone Safari doesn't report a
+   cancelled press during a scroll with touch-action: manipulation. */
+.desk-main { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; transition: background-color 0.5s linear; }
+.desk-main.is-holding { background-color: var(--mint-100); }
+.hold-ring { position: relative; flex: none; width: 34px; height: 34px; display: inline-flex; align-items: center; justify-content: center; }
+/* Only the ring itself is rotated so it fills from the top, not the play icon. */
+.hold-ring > svg { position: absolute; inset: 0; transform: rotate(-90deg); }
+.hold-track, .hold-fill { fill: none; stroke-width: 3; }
+.hold-track { stroke: var(--border); }
+.hold-fill {
+  stroke: var(--teal-500); stroke-linecap: round;
+  stroke-dasharray: 94.25; stroke-dashoffset: 94.25; transition: stroke-dashoffset 0.15s ease-out;
+}
+.desk-main.is-holding .hold-fill { stroke-dashoffset: 0; transition: stroke-dashoffset 0.5s linear; }
+.hold-icon { position: relative; display: inline-flex; color: var(--teal-700); margin-left: 2px; }
+
+/* Quick time chips. */
+.start-at { display: flex; flex-direction: column; gap: 8px; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip-button {
+  min-height: 40px; padding: 0 14px; border: 1px solid #b9d2d4; border-radius: 999px;
+  background: var(--surface); color: var(--teal-700); font: inherit; font-size: 0.9375rem; font-weight: 600; cursor: pointer;
+}
+.chip-button[aria-pressed="true"] { background: var(--teal-700); border-color: var(--teal-700); color: #fff; }
+.chips-label { margin: 0 0 6px; font-weight: 600; }
+.end-chips { margin-top: -4px; }
+
+/* What a save will do, shown while typing. */
+.conflict-hint {
+  display: flex; gap: 8px; align-items: flex-start; margin: 0;
+  padding: 10px 12px; border-radius: 10px; background: var(--mint-100); color: var(--teal-900); font-size: 0.9375rem;
+}
+.conflict-hint[hidden] { display: none; }
+.conflict-hint svg { flex: none; margin-top: 1px; }
+.conflict-hint.is-warn { background: var(--warn-bg); color: var(--warn-text); }
+
+/* The Adjust overlapping time sheet. */
+.adjust { display: flex; flex-direction: column; gap: 14px; }
+.adjust-lead { margin: 0; }
+.adjust-before { padding: 12px; border-radius: 12px; background: #f6fafa; border: 1px solid var(--border); }
+.tl-caption { margin: 0 0 6px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); }
+.tl { margin-top: 4px; }
+.tl-lane { position: relative; height: 28px; margin-bottom: 5px; border-radius: 8px; background: #e9f1f1; overflow: hidden; }
+.tl-block {
+  position: absolute; top: 3px; bottom: 3px; display: flex; align-items: center; padding: 0 6px;
+  border-radius: 6px; font-size: 0.75rem; font-weight: 700; overflow: hidden; white-space: nowrap;
+}
+.tl-block span { overflow: hidden; text-overflow: ellipsis; }
+.tl-other { background: #bcd6d7; color: var(--teal-900); }
+.tl-new { background: var(--teal-700); color: #fff; }
+.tl-proposed {
+  background: repeating-linear-gradient(135deg, rgba(11, 88, 102, 0.22) 0 6px, rgba(11, 88, 102, 0.08) 6px 12px);
+  box-shadow: inset 0 0 0 2px var(--teal-700); color: var(--teal-900);
+}
+.tl-scale { display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+.tl-key { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 14px; margin: 8px 0 0; font-size: 0.8125rem; color: var(--muted); }
+.tl-key > span { display: inline-flex; align-items: center; gap: 6px; }
+.key { display: inline-block; flex: none; width: 14px; height: 10px; border-radius: 3px; }
+.key-other { background: #bcd6d7; }
+.key-proposed { background: repeating-linear-gradient(135deg, rgba(11, 88, 102, 0.35) 0 3px, rgba(11, 88, 102, 0.1) 3px 6px); box-shadow: inset 0 0 0 1.5px var(--teal-700); }
+.choices { display: grid; gap: 10px; margin: 0; padding: 0; border: 0; min-width: 0; }
+.choice {
+  display: flex; gap: 12px; align-items: flex-start; padding: 12px 14px;
+  border: 2px solid var(--border); border-radius: 14px; background: var(--surface); cursor: pointer;
+}
+.choice:has(input:checked) { border-color: var(--teal-700); background: #f3fbf9; }
+.choice:has(input:focus-visible) { outline: 3px solid var(--mint-300); outline-offset: 2px; }
+.choice input { width: 22px; height: 22px; margin: 1px 0 0; flex: none; accent-color: var(--teal-700); }
+.choice.is-disabled { cursor: default; opacity: 0.65; }
+.choice-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.choice-title { font-weight: 700; color: var(--teal-900); }
+.choice-sub { font-size: 0.875rem; color: var(--muted); }
+.choice .tl { margin-top: 6px; }
+.choice .tl-lane { margin-bottom: 3px; }
+.choice-effects { display: flex; flex-direction: column; gap: 4px; margin-top: 4px; font-size: 0.875rem; }
+.choice-effects span { position: relative; padding-left: 14px; }
+.choice-effects span::before { content: ""; position: absolute; left: 2px; top: 0.6em; width: 5px; height: 5px; border-radius: 50%; background: var(--teal-500); }
+.session.has-overlap { border-color: #f0d7a8; }
 
 /* Desktop and laptop. */
 @media (min-width: 900px) {

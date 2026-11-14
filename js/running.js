@@ -8,6 +8,7 @@ import { esc, toast } from './ui.js';
 import * as store from './store.js';
 import { entryMs, formatClock, formatHM, formatTime } from './time.js';
 import { openEntryForm } from './entry-forms.js';
+import { floorMinute, planFinish } from './timeline.js';
 
 let running = null;
 let timer = null;
@@ -64,16 +65,21 @@ function renderBar() {
   el.querySelector('[data-bar="finish"]').addEventListener('click', finishNow);
 }
 
+// Finish ends the timer at the current minute. Under a minute isn't kept.
 export async function finishNow() {
   const entry = running;
   if (!entry) return;
-  const endIso = new Date().toISOString();
   try {
-    const saved = await store.finishRunning(endIso);
-    if (!saved) return;
-    toast(`Finished ${saved.taskName} · ${formatHM(entryMs(saved, Date.now()))}`, {
+    const fresh = await store.getEntry(entry.id);
+    if (!fresh || fresh.end || fresh.deleted) return;
+    const plan = planFinish(fresh, floorMinute(Date.now()));
+    const result = await store.applyChanges(plan.changes);
+    const message = plan.tooShort
+      ? `${fresh.taskName} was under a minute, so it wasn\u2019t kept.`
+      : `Finished ${fresh.taskName} · ${formatHM(entryMs(result.written[0], Date.now()))}`;
+    toast(message, {
       action: 'Undo',
-      onAction: () => store.reopenEntry(saved.id, endIso).catch((error) => toast(error.message)),
+      onAction: () => store.undoChanges(result.undo).catch((error) => toast(error.message)),
     });
   } catch (error) {
     toast(error.message);

@@ -112,9 +112,25 @@ export function decimalHours(ms) {
   return (ms / 3600000).toFixed(2);
 }
 
-// "9:05 AM"
-export function formatTime(iso) {
-  return new Date(iso).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+// "9:05 AM" from an ISO time or milliseconds.
+export function formatTime(value) {
+  return new Date(value).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+}
+
+// "9:00–9:25 AM", "11:30 AM–12:15 PM", or "9:25 AM–now" (end null).
+export function formatRange(startMs, endMs) {
+  const s = formatTime(startMs);
+  if (endMs === null || endMs === undefined) return `${s}\u2013now`;
+  const e = formatTime(endMs);
+  const sameDay = localDate(new Date(startMs)) === localDate(new Date(endMs));
+  if (sameDay && s.slice(-2) === e.slice(-2)) return `${s.slice(0, -3)}\u2013${e}`;
+  return `${s}\u2013${e}${sameDay ? '' : ' (next day)'}`;
+}
+
+// "15 min" or "1h 05m", for amounts of time in sentences.
+export function formatMinutes(ms) {
+  const m = Math.round(ms / 60000);
+  return m < 60 ? `${m} min` : `${Math.floor(m / 60)}h ${pad(m % 60)}m`;
 }
 
 // "Fri, Nov 13"
