@@ -29,7 +29,9 @@ function totalsCard(entries, running) {
   const weekBase = t.weekMs - (weekRuns ? runningMs : 0);
   const target = weeklyTargetHours();
   const pct = Math.min(100, Math.round((t.weekMs / (target * 3600000)) * 100));
-  return `<section class="card totals" aria-label="Totals">
+  // The week's progress fills the card itself (the Work Hub's "Sweep" look)
+  // instead of a bar. The progress bar stays for screen readers only.
+  return `<section class="card totals fill-sweep" style="--p:${pct}%" aria-label="Totals">
       <div class="totals-grid">
         <a class="total" href="#day">
           <span class="total-label">Today</span>
@@ -41,7 +43,7 @@ function totalsCard(entries, running) {
           <span class="total-sub">of ${target}h target</span>
         </a>
       </div>
-      <div class="progress" role="progressbar" aria-label="Week progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${pct}"><span style="width:${pct}%"></span></div>
+      <div class="sr-only" role="progressbar" aria-label="Week progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${pct}"></div>
     </section>`;
 }
 

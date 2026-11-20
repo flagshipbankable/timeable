@@ -9,8 +9,9 @@ review changes) published Nov 14, 2026. (0.3.0 was never published.)
 Plan changed Nov 19, 2026: sync moves up to Phase 4 and goes through a private
 GitHub repo with on-device encryption; portal lines move to Phase 5; coworkers
 are set aside. Phase 4 (0.4.0) published Nov 20, 2026; waiting for Josh to
-create the data repo and check sync on his iPhone and laptop. Phase 5 starts
-when Josh says go.
+create the data repo and check sync on his iPhone and laptop. 0.4.1 (the Work
+Hub look) built Nov 20, 2026, waiting for Josh's OK to publish. Phase 5
+starts when Josh says go.
 
 ## 1. Overview
 
@@ -187,6 +188,27 @@ hours**, **Preparation hours**, **Miles**, **Destination** (optional),
 - Lose the passphrase and the GitHub copy can't be read. Each device's copy
   and backups still hold everything, and sync can be set up again with a new
   passphrase.
+
+**Look** (0.4.1, Josh, Nov 20): matches Josh's Work Hub (its design guide
+v3.3 is kept in the Claude project, not this repo). Dark frosted glass over
+soft Google-colored light, with these rules:
+- The rainbow outline means "you can press this" or "this is chosen": primary
+  buttons, the current tab, chosen chips and options. Never on anything that
+  can't be pressed.
+- Pressable fills are white glass; secondary buttons are outlined pills.
+  Destructive buttons are a red tint, never the rainbow.
+- Google colors are light only (the background glow, outlines, the hold
+  ring, the week fill), never flat paint.
+- Status colors are soft tints with bright text: green good, amber needs
+  attention, red errors.
+- Progress fills the box instead of a bar (the Desk totals card fills with
+  the week's progress, the "Sweep" look).
+- The toast is the one light surface. Focus rings are light blue.
+- Real frosted blur only on surfaces that float over moving content (top
+  bar, tab bar, timer bar, sheets); cards are plain translucent glass, which
+  looks the same over the already-blurred glow and keeps scrolling fast.
+- Font: the system font for now. Google Sans Flex (SIL Open Font License)
+  could be hosted in the app later, never loaded from Google.
 
 **App basics**
 - Installs to the Home Screen, works offline, and shows an update prompt.
@@ -369,6 +391,7 @@ the ability to reach, client names, client data, or client information.
       Writes through GitHub's file API and the browser's CORS pre-check
       couldn't run from the workspace (its proxy blocks them); Josh's first
       setup is their first real run.
+- [x] 0.4.1: Work Hub look (Josh asked Nov 20)
 - [ ] Josh: create the private data repo and its token (steps from Claude)
 - [ ] Josh's check on the iPhone and work laptop together
 
@@ -404,3 +427,8 @@ the ability to reach, client names, client data, or client information.
   Review button. **Connections:** the app can now reach `api.github.com`
   (only Josh's data repo, only once sync is set up); a Content Security
   Policy blocks every other site.
+- 0.4.1 — Nov 20, 2026 — The Work Hub look: dark frosted glass over soft
+  Google-colored light, rainbow outlines on what you can press or have
+  chosen, soft status tints, a light toast, and the week's progress filling
+  the Desk totals card. The press-and-hold ring fills with Google colors.
+  Dark status bar and theme colors. No change to data or connections.
