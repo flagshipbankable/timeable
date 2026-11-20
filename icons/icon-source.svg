@@ -1,7 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
   <defs>
-    <!-- Google colors in the Work Hub order, flowing diagonally across the mark. -->
-    <linearGradient id="rb" gradientUnits="userSpaceOnUse" x1="270" y1="290" x2="760" y2="740">
+    <!-- Google colors in the Work Hub order, flowing down the hourglass. -->
+    <linearGradient id="rb" gradientUnits="userSpaceOnUse" x1="270" y1="290" x2="490" y2="740">
       <stop offset="0" stop-color="#4285F4"/>
       <stop offset="0.38" stop-color="#EA4335"/>
       <stop offset="0.66" stop-color="#FBBC04"/>
@@ -16,23 +16,16 @@
       <path fill="url(#rb)" stroke="none" d="M326 378 Q380 356 434 372 Q404 402 384 456 Q368 404 326 378 Z"/>
       <circle fill="url(#rb)" stroke="none" cx="380" cy="590" r="17"/>
       <circle fill="url(#rb)" stroke="none" cx="380" cy="640" r="22"/>
-      <!-- The "t". -->
+    </g>
+    <!-- The "t", in bright white. -->
+    <g id="t" fill="none" stroke="#ffffff" stroke-linecap="round" stroke-linejoin="round">
       <path stroke-width="66" d="M642 304 V636 Q642 712 716 712 H744"/>
       <path stroke-width="62" d="M578 430 H742"/>
     </g>
   </defs>
   <rect width="1024" height="1024" fill="#131314"/>
-  <!-- Soft Google-colored light along the bottom, like the app's background. -->
-  <g filter="url(#soft)" opacity="0.55">
-    <ellipse cx="170" cy="930" rx="230" ry="150" fill="#FBBC04"/>
-    <ellipse cx="410" cy="960" rx="220" ry="130" fill="#EA4335"/>
-    <ellipse cx="640" cy="960" rx="230" ry="140" fill="#4285F4"/>
-    <ellipse cx="880" cy="920" rx="220" ry="160" fill="#34A853"/>
-    <ellipse cx="860" cy="120" rx="240" ry="150" fill="#4285F4" opacity="0.35"/>
-    <ellipse cx="160" cy="110" rx="200" ry="140" fill="#A142F4" opacity="0.3"/>
-  </g>
-  <!-- Faint ring, as in the original icon. -->
-  <circle cx="512" cy="512" r="400" fill="none" stroke="#ffffff" stroke-opacity="0.08" stroke-width="10"/>
   <use href="#mark" filter="url(#glow)" opacity="0.75"/>
+  <use href="#t" filter="url(#glow)" opacity="0.4"/>
   <use href="#mark"/>
+  <use href="#t"/>
 </svg>

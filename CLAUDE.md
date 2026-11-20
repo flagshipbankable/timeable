@@ -11,7 +11,8 @@ GitHub repo with on-device encryption; portal lines move to Phase 5; coworkers
 are set aside. Phase 4 (0.4.0) published Nov 20, 2026; waiting for Josh to
 create the data repo and check sync on his iPhone and laptop. 0.4.1 (the Work
 Hub look, font, and icon) published Nov 20, 2026 on Josh's OK; he checks it
-with 0.4.0's sync. Phase 5 starts when Josh says go.
+with 0.4.0's sync. 0.4.2 (icon tweak) built Nov 20, waiting for Josh's OK.
+Phase 5 starts when Josh says go.
 
 ## 1. Overview
 
@@ -212,9 +213,10 @@ soft Google-colored light, with these rules:
   33 KB) and renamed inside the file to "timeable Sans", because Google's
   trademark notes limit the original name on modified copies. `fonts/OFL.txt`
   must stay with it; `fonts/README.md` says how to rebuild it.
-- App icon (Josh, Nov 20): the original timeable hourglass-and-"t" mark,
-  redrawn in the Google colors with the app's glow behind it. Source:
-  `icons/icon-source.svg`.
+- App icon (Josh, Nov 20): the original timeable hourglass-and-"t" mark on a
+  plain dark background (no glow or ring behind it). The hourglass carries
+  the Google colors (blue to green, top to bottom) and the "t" is bright
+  white (0.4.2). Source: `icons/icon-source.svg`.
 
 **App basics**
 - Installs to the Home Screen, works offline, and shows an update prompt.
@@ -441,3 +443,6 @@ the ability to reach, client names, client data, or client information.
   The Work Hub's font (Google Sans Flex, hosted in the app) and a new icon:
   the original hourglass-and-"t" in Google colors. Dark status bar and theme
   colors. No change to data or connections.
+- 0.4.2 — Nov 20, 2026 — Icon tweak: the hourglass carries the Google colors,
+  the "t" is bright white, and the background is plain dark (no glow or
+  ring). No other changes.
