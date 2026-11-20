@@ -11,6 +11,7 @@ const ASSETS = [
   './index.html',
   './manifest.webmanifest',
   './css/app.css',
+  './fonts/timeable-sans.woff2',
   './js/adjust.js',
   './js/app.js',
   './js/backup.js',

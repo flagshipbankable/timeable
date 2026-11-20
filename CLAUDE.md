@@ -10,8 +10,8 @@ Plan changed Nov 19, 2026: sync moves up to Phase 4 and goes through a private
 GitHub repo with on-device encryption; portal lines move to Phase 5; coworkers
 are set aside. Phase 4 (0.4.0) published Nov 20, 2026; waiting for Josh to
 create the data repo and check sync on his iPhone and laptop. 0.4.1 (the Work
-Hub look) built Nov 20, 2026, waiting for Josh's OK to publish. Phase 5
-starts when Josh says go.
+Hub look, font, and icon) published Nov 20, 2026 on Josh's OK; he checks it
+with 0.4.0's sync. Phase 5 starts when Josh says go.
 
 ## 1. Overview
 
@@ -207,8 +207,14 @@ soft Google-colored light, with these rules:
 - Real frosted blur only on surfaces that float over moving content (top
   bar, tab bar, timer bar, sheets); cards are plain translucent glass, which
   looks the same over the already-blurred glow and keeps scrolling fast.
-- Font: the system font for now. Google Sans Flex (SIL Open Font License)
-  could be hosted in the app later, never loaded from Google.
+- Font: Google Sans Flex (SIL Open Font License 1.1), hosted in the app,
+  never loaded from Google. It's trimmed to Latin and weights 400–800 (about
+  33 KB) and renamed inside the file to "timeable Sans", because Google's
+  trademark notes limit the original name on modified copies. `fonts/OFL.txt`
+  must stay with it; `fonts/README.md` says how to rebuild it.
+- App icon (Josh, Nov 20): the original timeable hourglass-and-"t" mark,
+  redrawn in the Google colors with the app's glow behind it. Source:
+  `icons/icon-source.svg`.
 
 **App basics**
 - Installs to the Home Screen, works offline, and shows an update prompt.
@@ -299,7 +305,8 @@ timeable/
 ├── js/views/               one file per screen: desk, day, week, tasks,
 │                           settings, codes (code book editor, #codes),
 │                           and sync-settings (the Sync section of Settings)
-├── icons/                  app icons: 192, 512, maskable 512, Apple 180
+├── fonts/                  timeable-sans.woff2 (trimmed Google Sans Flex), OFL.txt, README.md
+├── icons/                  app icons: 192, 512, maskable 512, Apple 180, and icon-source.svg
 ├── .nojekyll               serve files as-is on GitHub Pages
 ├── README.md
 └── CLAUDE.md
@@ -431,4 +438,6 @@ the ability to reach, client names, client data, or client information.
   Google-colored light, rainbow outlines on what you can press or have
   chosen, soft status tints, a light toast, and the week's progress filling
   the Desk totals card. The press-and-hold ring fills with Google colors.
-  Dark status bar and theme colors. No change to data or connections.
+  The Work Hub's font (Google Sans Flex, hosted in the app) and a new icon:
+  the original hourglass-and-"t" in Google colors. Dark status bar and theme
+  colors. No change to data or connections.

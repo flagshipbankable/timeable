@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <defs>
+    <!-- Google colors in the Work Hub order, flowing diagonally across the mark. -->
+    <linearGradient id="rb" gradientUnits="userSpaceOnUse" x1="270" y1="290" x2="760" y2="740">
+      <stop offset="0" stop-color="#4285F4"/>
+      <stop offset="0.38" stop-color="#EA4335"/>
+      <stop offset="0.66" stop-color="#FBBC04"/>
+      <stop offset="1" stop-color="#34A853"/>
+    </linearGradient>
+    <filter id="glow" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="22"/></filter>
+    <filter id="soft" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="70"/></filter>
+    <g id="mark" fill="none" stroke="url(#rb)" stroke-linecap="round" stroke-linejoin="round">
+      <!-- Hourglass outline: rounded top and bottom, pinched waist (from the original timeable icon). -->
+      <path stroke-width="54" d="M322 292 H438 Q490 292 490 344 V372 C490 444 424 474 416 516 C424 558 490 588 490 660 V688 Q490 740 438 740 H322 Q270 740 270 688 V660 C270 588 336 558 344 516 C336 474 270 444 270 372 V344 Q270 292 322 292 Z"/>
+      <!-- Sand in the top chamber, and two grains falling. -->
+      <path fill="url(#rb)" stroke="none" d="M326 378 Q380 356 434 372 Q404 402 384 456 Q368 404 326 378 Z"/>
+      <circle fill="url(#rb)" stroke="none" cx="380" cy="590" r="17"/>
+      <circle fill="url(#rb)" stroke="none" cx="380" cy="640" r="22"/>
+      <!-- The "t". -->
+      <path stroke-width="66" d="M642 304 V636 Q642 712 716 712 H744"/>
+      <path stroke-width="62" d="M578 430 H742"/>
+    </g>
+  </defs>
+  <rect width="1024" height="1024" fill="#131314"/>
+  <!-- Soft Google-colored light along the bottom, like the app's background. -->
+  <g filter="url(#soft)" opacity="0.55">
+    <ellipse cx="170" cy="930" rx="230" ry="150" fill="#FBBC04"/>
+    <ellipse cx="410" cy="960" rx="220" ry="130" fill="#EA4335"/>
+    <ellipse cx="640" cy="960" rx="230" ry="140" fill="#4285F4"/>
+    <ellipse cx="880" cy="920" rx="220" ry="160" fill="#34A853"/>
+    <ellipse cx="860" cy="120" rx="240" ry="150" fill="#4285F4" opacity="0.35"/>
+    <ellipse cx="160" cy="110" rx="200" ry="140" fill="#A142F4" opacity="0.3"/>
+  </g>
+  <!-- Faint ring, as in the original icon. -->
+  <circle cx="512" cy="512" r="400" fill="none" stroke="#ffffff" stroke-opacity="0.08" stroke-width="10"/>
+  <use href="#mark" filter="url(#glow)" opacity="0.75"/>
+  <use href="#mark"/>
+</svg>

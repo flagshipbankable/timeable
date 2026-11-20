@@ -35,4 +35,5 @@ Settings → Sync.
 ## Built with
 
 Plain HTML, CSS, and JavaScript, with no build step, hosted on GitHub Pages.
-Built with Claude.
+The font is a trimmed copy of Google Sans Flex (SIL Open Font License 1.1),
+included in `fonts/` with its license. Built with Claude.
