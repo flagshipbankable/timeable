@@ -8,8 +8,9 @@ placeholders.
 review changes) published Nov 14, 2026. (0.3.0 was never published.)
 Plan changed Nov 19, 2026: sync moves up to Phase 4 and goes through a private
 GitHub repo with on-device encryption; portal lines move to Phase 5; coworkers
-are set aside. Phase 4 (0.4.0) approved and built Nov 20, 2026; waiting for
-Josh's OK to publish, then his iPhone and laptop check.
+are set aside. Phase 4 (0.4.0) published Nov 20, 2026; waiting for Josh to
+create the data repo and check sync on his iPhone and laptop. Phase 5 starts
+when Josh says go.
 
 ## 1. Overview
 
@@ -352,7 +353,8 @@ the ability to reach, client names, client data, or client information.
 
 ### Phase 4 — Sync (private GitHub repo, encrypted) — 0.4.0
 - [x] Plan agreed with Josh (Nov 20)
-- [ ] Josh: confirm the Claude GitHub app is set to "Only select repositories"
+- [x] Josh: Claude GitHub app set to "Only select repositories" (timeable,
+      timeable-sync-test), confirmed Nov 20
 - [x] Josh: create the throwaway test repo (sample data only)
 - [x] Content Security Policy: this site and `api.github.com` only
 - [x] Encryption with the passphrase; wrong-passphrase check
