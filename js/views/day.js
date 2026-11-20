@@ -14,6 +14,14 @@ import { tickNow } from '../running.js';
 // The day being looked at. null means "today", so it follows the calendar.
 let selected = null;
 
+// Opens the Day screen on a given date (used by the sync message about
+// overlapping time).
+export function showDate(workDate) {
+  selected = isValidWorkDate(workDate) && workDate < localDate() ? workDate : null;
+  if (window.location.hash === '#day') window.dispatchEvent(new HashChangeEvent('hashchange'));
+  else window.location.hash = '#day';
+}
+
 // 8.6 stays 8.6 and 0.25 stays 0.25 (no padded zeros).
 const amount = (n) => String(Math.round(n * 100) / 100);
 

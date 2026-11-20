@@ -5,8 +5,11 @@ credentials, employer details, job codes, client names, or real data. Use
 placeholders.
 
 **Status:** Approved Nov 14, 2026. v0.3.1 (Phases 1–3, including Josh's
-review changes) published Nov 14, 2026, waiting for Josh's iPhone check.
-Phase 4 starts when Josh says go. (0.3.0 was never published.)
+review changes) published Nov 14, 2026. (0.3.0 was never published.)
+Plan changed Nov 19, 2026: sync moves up to Phase 4 and goes through a private
+GitHub repo with on-device encryption; portal lines move to Phase 5; coworkers
+are set aside. Phase 4 (0.4.0) approved and built Nov 20, 2026; waiting for
+Josh's OK to publish, then his iPhone and laptop check.
 
 ## 1. Overview
 
@@ -14,11 +17,11 @@ Phase 4 starts when Josh says go. (0.3.0 was never published.)
   finish as the day goes, then use the day's view to enter time into the
   office's web timesheet portal quickly and accurately. The portal has no
   import, so timeable's job is making manual entry fast and error-free.
-- **Who uses it:** the owner first. Coworkers may use it later, each with their
-  own private log.
+- **Who uses it:** the owner only, for now (decided Nov 19). Coworkers are set
+  aside.
 - **Devices:** iPhone (main, installed from the Home Screen) and a work laptop
   browser (where time gets entered into the portal). Sync between them comes
-  in Phase 5.
+  in Phase 4.
 - **Replaces:** an earlier version built on another platform. That version
   stays in use until this one has sync.
 - **Version 1 is done when:** logging on the phone and entering a full week
@@ -144,16 +147,55 @@ hours**, **Preparation hours**, **Miles**, **Destination** (optional),
 - Weekly totals matching the payroll export, measured against a 40-hour target
   (Monday–Sunday).
 
+**Sync between iPhone and laptop** (Phase 4; plan drafted Nov 19)
+- Each device saves every change locally first, with the same
+  no-double-counting checks, and works fully offline. Sync copies changes
+  between devices through a **private data repo** on GitHub that Josh creates.
+- **Everything is encrypted on the device** before it leaves, with a key made
+  from a passphrase only Josh knows. GitHub stores only scrambled files. File
+  names and commit messages carry no record details.
+- Each device needs three things, entered once in Settings → Sync: the data
+  repo's name, a GitHub token that can reach only that repo, and the
+  passphrase. A wrong passphrase is caught and named, never applied.
+- Settings → Sync shows when it last synced, how many changes are waiting,
+  and any problem in plain words, with a "Sync now" button and "Turn off sync
+  on this device" (keep or remove this device's copy).
+- Sync runs when the app opens or comes back on screen, shortly after a
+  change, and about once a minute while open. Changes made offline wait and
+  go up later.
+- Each device writes only its own small change files, so devices never
+  overwrite each other. Old change files are tidied into one summary file
+  from time to time so the repo stays small.
+- Merging: for each task, session, or checkmark, the most recent change wins.
+  Deletes sync too. Merging never quietly removes time.
+- Two timers running after a merge: the later start keeps running. The
+  earlier one ends where the next session after it begins (usually the other
+  timer's start), the same as switching tasks. A timer started in the very
+  same minute as the kept one has no time, so it's removed, and the app says
+  so. Any other overlap is flagged on the Day screen and fixed with Adjust,
+  exactly like overlaps from old data; a message with a Review button opens
+  that day.
+- Problems Josh must fix (an expired token, a changed passphrase, a public
+  repo) stop automatic syncing and show a banner on every screen with a Fix
+  link. Problems that fix themselves (offline, GitHub busy) only show in
+  Settings, and sync retries on its own.
+- Backups never include the token or sync settings. Importing a backup with
+  sync on sends its records and re-reads the repo, so the newest copy of each
+  record wins on both devices.
+- Setting up a second device that already has data merges both sides.
+- Lose the passphrase and the GitHub copy can't be read. Each device's copy
+  and backups still hold everything, and sync can be set up again with a new
+  passphrase.
+
 **App basics**
 - Installs to the Home Screen, works offline, and shows an update prompt.
 - Export and import a full backup file.
 - All dates and "today" use the device's local time zone.
 
 ### Later (agreed, not now)
-- **Phase 5 — sync** across devices through Firebase (Google), with sign-in.
-- **Phase 6 — coworkers:** each person gets a private log, and one shared code
-  book is managed by the owner.
-- Optional encryption of client and summary fields before they sync.
+- **Coworkers** (set aside Nov 19): each person would get a private log and
+  one shared code book. Sync would likely switch to Firebase then, so all
+  sync code stays in `js/sync.js` to keep that switch contained.
 - Option to combine lines by service code instead of by task.
 - Suggestions from recently typed client names.
 - Export in the payroll spreadsheet's layout.
@@ -172,11 +214,24 @@ hours**, **Preparation hours**, **Miles**, **Destination** (optional),
   settings.
 - **Sync-ready from day one:** every record has a random unique ID, an
   `updatedAt` time, and a `deleted` flag in place of hard deletes.
-- **Phase 5 decision, made then:** whether Firestore's offline cache becomes
-  the store, or the local store stays and a sync module mirrors it. Check
-  Firebase's current docs first.
-- **Outside requests:** none until Phase 5. Then Firebase only, sending the
-  signed-in user's own records.
+- **Sync design:** the local store stays the source of truth on each device,
+  and `js/sync.js` mirrors it through the GitHub REST API (Contents endpoints).
+  Encryption uses the browser's built-in Web Crypto (AES-GCM, with the key
+  derived from the passphrase). Check GitHub's and MDN's current docs before
+  writing each part.
+- **Outside requests:** none except `api.github.com`, only to Josh's own data
+  repo, only once sync is set up, and only encrypted data. `index.html` sets a
+  Content Security Policy (a `<meta>` tag, since GitHub Pages can't send the
+  header) so the page can connect only to this site and `api.github.com`.
+  Per MDN, a page's policy doesn't govern its service worker; `sw.js` only
+  ever handles this site's own files. Styles allow inline `style` attributes
+  (bar widths); images, scripts, and connections don't.
+- **Sync details (0.4.0):** GitHub REST API version `2026-03-10`; files read
+  by fingerprint through `git/blobs` (raw); every read asks GitHub fresh
+  (`cache: 'no-cache'`, so unchanged answers are free 304s); writes one at a
+  time with a 1-second gap; PBKDF2-SHA-256 at 600,000 rounds (OWASP); gzip
+  before encrypting. Repo layout: `timeable-sync.json` (salt and check value,
+  not secret), `changes/<device>_<number>.bin`, `snapshot.bin`.
 
 **Data model** (schema version 1)
 
@@ -187,6 +242,11 @@ hours**, **Preparation hours**, **Miles**, **Destination** (optional),
 | entry | id, workDate, start, end (empty while running), taskId, taskName, code, codeLabel, billable, client, notes, travelHours, prepHours, miles, destination, expenses, updatedAt, deleted |
 | portalMark | workDate + line key, entered, enteredAt, updatedAt |
 | settings | week start, weekly target |
+
+Sync bookkeeping lives in the existing `meta` store, so Phase 4 needed no
+change to saved records and no migration: `sync` (repo, token, `cryptoKey`,
+device ID), `syncState` (file number, files read, last sync), and one
+`outbox:<store>:<id>` note per record changed here and not yet sent.
 
 ## 5. File layout
 
@@ -211,8 +271,11 @@ timeable/
 ├── js/running.js           the "On the clock" bar and live timer
 ├── js/timeline.js          the no-double-counting rule: overlaps and plans
 ├── js/adjust.js            saving time safely; the Adjust overlapping time sheet
+├── js/crypto.js            encryption with Josh's passphrase (Phase 4)
+├── js/sync.js              all sync: the data repo, change files, merging (Phase 4)
 ├── js/views/               one file per screen: desk, day, week, tasks,
-│                           settings, codes (code book editor, #codes)
+│                           settings, codes (code book editor, #codes),
+│                           and sync-settings (the Sync section of Settings)
 ├── icons/                  app icons: 192, 512, maskable 512, Apple 180
 ├── .nojekyll               serve files as-is on GitHub Pages
 ├── README.md
@@ -241,6 +304,21 @@ offline.
 - Never put job codes, client names, or employer details in this repo. Sample
   data uses made-up codes like `9100 Sample - Category`.
 
+**Client data boundary (Josh, Nov 19).** Claude may use general tools, this
+repo, sample data, and the code book. Claude must never have access to, or
+the ability to reach, client names, client data, or client information.
+- Client details live only on Josh's devices, in his backup files, and in
+  the private data repo (encrypted). Nowhere else.
+- The Claude GitHub app is limited to the repos Claude works on (this one and
+  a throwaway test repo). The data repo is never attached to a Claude session.
+- Claude never asks for or receives the data repo's contents, its token, the
+  passphrase, a backup file, or screenshots that show client details.
+  Feedback uses sample data, or screenshots cropped or blurred first.
+- Tests use made-up sample data: a local stand-in for GitHub for most sync
+  tests, and the throwaway test repo for a final real check.
+- Any change to what the app is allowed to connect to is called out in the
+  release notes.
+
 ## 8. Phases
 
 ### Phase 1 — Foundation
@@ -266,25 +344,40 @@ offline.
 - [x] Today and this-week totals on the Desk
 - [x] Settings: reword "Protected from clean-up" so it reads as a status, not a setting (Josh, Nov 14)
 - [x] Desk redesign: full-width rows, one-tap clock-in with Undo, ⋯ options (Josh, Nov 14)
-- [x] Day tab: the day's sessions with date navigation (portal lines come in Phase 4)
+- [x] Day tab: the day's sessions with date navigation (portal lines come in Phase 5)
 - [x] Test: timer survives reload and app close; switching; overnight entries
 - [x] Josh's review of 0.3.0 (Nov 14): press-and-hold, no double-counted minutes, Adjust overlapping time, quick time chips, whole minutes
 - [x] Test: every overlap shape, 3,000 random timelines, store guard, stale Undo, old overlapping data
 - [ ] Josh's iPhone check after publishing
 
-### Phase 4 — Ready for the portal
+### Phase 4 — Sync (private GitHub repo, encrypted) — 0.4.0
+- [x] Plan agreed with Josh (Nov 20)
+- [ ] Josh: confirm the Claude GitHub app is set to "Only select repositories"
+- [x] Josh: create the throwaway test repo (sample data only)
+- [x] Content Security Policy: this site and `api.github.com` only
+- [x] Encryption with the passphrase; wrong-passphrase check
+- [x] Settings → Sync: set up, status, Sync now, turn off on this device;
+      new token, new passphrase, start over
+- [x] Encrypted change files up and down; offline queue; tidy-up
+- [x] Merging: newest change wins, deletes, two running timers, overlap flags
+- [x] Test: three simulated devices against a local stand-in for GitHub
+      (77 checks: offline, wrong passphrase, bad token, rate limit, tidy,
+      start over, backups); 15 unit checks; upgrade from live 0.3.1 (56)
+- [x] Test: real GitHub reads with the throwaway test repo (11 checks).
+      Writes through GitHub's file API and the browser's CORS pre-check
+      couldn't run from the workspace (its proxy blocks them); Josh's first
+      setup is their first real run.
+- [ ] Josh: create the private data repo and its token (steps from Claude)
+- [ ] Josh's check on the iPhone and work laptop together
+
+### Phase 5 — Ready for the portal — 0.5.0
 - [ ] Day view with portal lines, rounding, copy buttons, entered checkmarks
 - [ ] Billable / Non-billable / Total header
 - [ ] Week view with payroll-style totals
 - [ ] Test: a sample week matches hand-calculated totals
 
-### Phase 5 — Sync (Firebase)
-- [ ] Plan agreed with Josh first: sign-in method, store design, Firebase setup steps
-- [ ] Sign-in, sync, offline queue, conflict handling
-- [ ] Test on iPhone and the work laptop together
-
-### Phase 6 — Coworkers
-- [ ] Plan agreed with Josh first: who can sign in, shared code book
+### Coworkers — set aside Nov 19
+- [ ] Only if Josh brings it back: plan sign-in, sync service, shared code book
 
 ## 9. Release notes
 - 0.1.0 — Nov 14, 2026 — Foundation: app shell with five screens, Home
@@ -302,3 +395,10 @@ offline.
   "Adjust overlapping time" with clear options instead of a warning. Also
   quick start and finish chips, live previews, Undo for adjustments, and
   overlap flags on the Day screen.
+- 0.4.0 — Nov 20, 2026 — Sync between iPhone and laptop through a private
+  GitHub repo, encrypted on the device with Josh's passphrase. Set up, status,
+  Sync now, and turn off in Settings; banners for problems that need a fix;
+  newest change wins; two running timers resolved; overlaps flagged with a
+  Review button. **Connections:** the app can now reach `api.github.com`
+  (only Josh's data repo, only once sync is set up); a Content Security
+  Policy blocks every other site.

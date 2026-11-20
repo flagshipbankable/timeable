@@ -273,7 +273,7 @@ a.button { text-decoration: none; }
 .form label { display: flex; flex-direction: column; gap: 6px; font-weight: 600; }
 .form label[hidden] { display: none; }
 .hint { font-weight: 400; color: var(--muted); font-size: 0.875rem; }
-input[type="text"], input[type="search"], input[type="date"], input[type="time"], select, textarea {
+input[type="text"], input[type="password"], input[type="search"], input[type="date"], input[type="time"], select, textarea {
   width: 100%;
   min-height: 44px;
   padding: 10px 12px;
@@ -630,3 +630,13 @@ body.has-running .toast { bottom: calc(var(--tabbar-height) + env(safe-area-inse
   .view { padding-top: 28px; padding-bottom: 40px; }
   .banners { max-width: 960px; margin: 0 auto; width: 100%; }
 }
+
+/* Sync (Settings) */
+.wrap-anywhere { overflow-wrap: anywhere; min-width: 0; }
+.notice .button-row { margin-top: 10px; }
+.howto { border: 1px solid var(--border); border-radius: 12px; padding: 0 14px; }
+.howto summary { min-height: 44px; display: flex; align-items: center; font-weight: 600; cursor: pointer; color: var(--teal-700); }
+.howto[open] { padding-bottom: 10px; }
+.howto .steps { margin-top: 0; }
+.bullets { display: grid; gap: 4px; }
+.card .button-row + p { margin-top: 12px; }

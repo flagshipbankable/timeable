@@ -1,8 +1,9 @@
 // timeable: app start-up, navigation, and banners.
 
 import { icons } from './icons.js';
-import { isIOS, isStandalone, prefs, todayLabel } from './ui.js';
-import { localDate } from './time.js';
+import { esc, isIOS, isStandalone, prefs, toast, todayLabel } from './ui.js';
+import { formatDay, formatTime, localDate } from './time.js';
+import { onMerged, onStatus, startSync } from './sync.js';
 import { refreshRunning, startRunningBar } from './running.js';
 import { applyUpdate, startServiceWorker } from './sw-client.js';
 import * as desk from './views/desk.js';
@@ -119,10 +120,48 @@ function maybeShowInstallHint() {
   });
 }
 
+// A banner on every screen while sync is stopped by something only Josh
+// can fix (an expired token, a changed passphrase). Problems that fix
+// themselves, like being offline, only show in Settings.
+function updateSyncBanner(status) {
+  const problem = status.state !== 'off' && status.problem && status.problem.needsAction ? status.problem : null;
+  const existing = document.getElementById('sync-banner');
+  if (!problem) {
+    if (existing) existing.remove();
+    return;
+  }
+  const html = `<p><strong>Sync stopped.</strong> ${esc(problem.text)}</p>
+     <a class="button button-small" href="#settings">Fix</a>`;
+  if (existing) existing.innerHTML = html;
+  else addBanner('sync-banner', html);
+}
+
+// After the other device's changes arrive: say so only when something
+// needs a look, so a normal sync stays quiet.
+function announceMerge({ fixes, overlapDates }) {
+  const parts = fixes.map((f) => (f.after.deleted
+    ? `${f.before.taskName} was started the same minute as ${f.kept.taskName} on your other device, so it was removed`
+    : `Two timers were running, so ${f.before.taskName} now ends at ${formatTime(f.after.end)}`));
+  if (overlapDates.length) {
+    const days = overlapDates.map((d) => formatDay(d)).join(', ');
+    parts.push(`Time from both devices overlaps on ${days}`);
+    toast(`${parts.join('. ')}.`, {
+      action: 'Review',
+      duration: 12000,
+      onAction: () => day.showDate(overlapDates[0]),
+    });
+  } else if (parts.length) {
+    toast(`${parts.join('. ')}.`, { duration: 8000 });
+  }
+}
+
 renderNav();
 updateDate();
 // The running session loads first, so live times on the first screen use it.
 startRunningBar().catch((error) => console.error(error)).finally(() => show({ moveFocus: false }));
+onStatus(updateSyncBanner);
+onMerged(announceMerge);
+startSync().catch((error) => console.error(error));
 maybeShowInstallHint();
 window.addEventListener('hashchange', () => show({ moveFocus: true }));
 // Saved data changed: refresh the running bar and redraw the current

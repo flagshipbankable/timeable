@@ -2,6 +2,11 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
+  <!-- Limits what this page can load and where it can send data: its own
+       files, plus GitHub's API for sync. Nothing else is reachable. Styles
+       allow inline style attributes (used for bar widths). Any change to
+       connect-src must be called out in the release notes. -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self'; connect-src 'self' https://api.github.com; object-src 'none'; base-uri 'self'; form-action 'none'">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#0b5866">
   <meta name="description" content="A running work-time log for entering time into an office timesheet portal.">

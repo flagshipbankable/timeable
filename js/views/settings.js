@@ -5,6 +5,17 @@ import { openSheet } from '../sheet.js';
 import * as store from '../store.js';
 import { activeCodes, applyCodebook, codeText, diffCodebooks, taskNeedsCode, validateCodebookFile } from '../codebook.js';
 import { backupFileName, deliverFile, readJsonFile, validateBackupFile } from '../backup.js';
+import { getStatus } from '../sync.js';
+import { syncCardHtml, wireSyncCard } from './sync-settings.js';
+
+// Sync's status, read straight from saved settings, so the card is right
+// even before the first sync of this visit has finished.
+async function syncStatus() {
+  const config = await store.getSyncConfig();
+  if (!config) return { state: 'off' };
+  const status = getStatus();
+  return { ...status, state: status.state === 'off' ? 'idle' : status.state, repo: config.repo };
+}
 
 const UPDATE_MESSAGES = {
   ready: 'A new version is ready. Tap Update in the banner at the top.',
@@ -14,7 +25,7 @@ const UPDATE_MESSAGES = {
 };
 
 export async function render(el) {
-  const [codebook, counts, persisted] = await Promise.all([store.getCodebook(), store.counts(), store.isPersisted()]);
+  const [codebook, counts, persisted, sync] = await Promise.all([store.getCodebook(), store.counts(), store.isPersisted(), syncStatus()]);
   const where = isStandalone() ? 'Home Screen app' : 'Browser tab';
   const lastBackup = prefs.get('lastBackupAt', null);
 
@@ -33,6 +44,7 @@ export async function render(el) {
        <div class="button-row"><button class="button" type="button" data-action="load-codebook">${icons.upload(18)} Load code book</button></div>`;
 
   el.innerHTML = `${heading('Settings')}
+    ${syncCardHtml(sync)}
     <section class="card" id="codebook-card">
       <h2>Code book</h2>
       ${codebookBody}
@@ -55,7 +67,7 @@ export async function render(el) {
         <div class="info-row"><dt>Time entries</dt><dd>${counts.entries}</dd></div>
         <div class="info-row"><dt>Storage protection</dt><dd>${persisted === true ? 'On' : persisted === false ? 'Not yet' : 'Unknown'}</dd></div>
       </dl>
-      <p class="muted small">Storage protection is a status, not a setting: it shows whether iPhone has agreed to keep timeable's data when space runs low. timeable asks automatically once you save something; iPhone decides, and it's more likely for Home Screen apps. Everything stays on this device, and backups are the safety net either way.</p>
+      <p class="muted small">Storage protection is a status, not a setting: it shows whether iPhone has agreed to keep timeable's data when space runs low. timeable asks automatically once you save something; iPhone decides, and it's more likely for Home Screen apps. Your data lives on this device (and, with sync on, encrypted in your data repo), and backups are the safety net either way.</p>
     </section>
     <section class="card">
       <h2>App</h2>
@@ -76,6 +88,8 @@ export async function render(el) {
       </ol>
       <p class="muted small">After that, always open timeable from the Home Screen. iPhone keeps the Home Screen app's data separate from Safari's.</p>
     </section>`;
+
+  wireSyncCard(el);
 
   getVersion().then((version) => {
     const target = el.querySelector('#app-version');
@@ -212,6 +226,7 @@ async function reviewBackup(file) {
         <div class="info-row"><dt>Time entries</dt><dd>${s.entries}</dd></div>
       </dl>
       ${hasData ? `<div class="notice notice-warn">${icons.warn(20)}<p>This <strong>replaces everything</strong> on this device (${plural(here.tasks, 'task')}, ${plural(here.entries, 'time entry', 'time entries')}). Export a backup first if you might need what's here.</p></div>` : ''}
+      ${(await store.getSyncConfig()) ? `<div class="notice">${icons.refresh(20)}<p>Sync is on. The backup's tasks and time will be sent to your other device, and anything your other device has that isn't in this backup will come back on the next sync.</p></div>` : ''}
       <div class="button-row">
         <button class="button ${hasData ? 'button-danger' : ''}" type="button" data-confirm autofocus>${hasData ? 'Replace everything' : 'Import'}</button>
         <button class="button button-soft" type="button" data-close>Cancel</button>
