@@ -11,7 +11,7 @@ GitHub repo with on-device encryption; portal lines move to Phase 5; coworkers
 are set aside. Phase 4 (0.4.0) published Nov 20, 2026; waiting for Josh to
 create the data repo and check sync on his iPhone and laptop. 0.4.1 (the Work
 Hub look, font, and icon) published Nov 20, 2026 on Josh's OK; he checks it
-with 0.4.0's sync. 0.4.2 (icon tweak) built Nov 20, waiting for Josh's OK.
+with 0.4.0's sync. 0.4.2 (icon tweak) published Nov 20 on Josh's OK.
 Phase 5 starts when Josh says go.
 
 ## 1. Overview
@@ -400,7 +400,7 @@ the ability to reach, client names, client data, or client information.
       Writes through GitHub's file API and the browser's CORS pre-check
       couldn't run from the workspace (its proxy blocks them); Josh's first
       setup is their first real run.
-- [x] 0.4.1: Work Hub look (Josh asked Nov 20)
+- [x] 0.4.1: Work Hub look (Josh asked Nov 20); 0.4.2: icon tweak
 - [ ] Josh: create the private data repo and its token (steps from Claude)
 - [ ] Josh's check on the iPhone and work laptop together
 
